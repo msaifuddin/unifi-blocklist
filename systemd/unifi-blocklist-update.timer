@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh custom blocklist every 12 hours
+
+[Timer]
+OnBootSec=5m
+OnUnitActiveSec=12h
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

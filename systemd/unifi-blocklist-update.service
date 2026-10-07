@@ -1,0 +1,9 @@
+[Unit]
+Description=Download custom blocklist for UniFi content filtering
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=@BASE_DIR@
+
+[Service]
+Type=oneshot
+ExecStart=@BASE_DIR@/blocklist.sh update

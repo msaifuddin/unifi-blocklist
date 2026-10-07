@@ -1,0 +1,14 @@
+[Unit]
+Description=Keep custom blocklist applied to UniFi content filtering
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=@BASE_DIR@
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=@BASE_DIR@/blocklist.sh watch
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

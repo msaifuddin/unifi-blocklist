@@ -1,0 +1,21 @@
+# unifi-blocklist configuration. Copied to blocklist.conf on install.
+#
+# Pick categories with `blocklist.sh menu` (TUI) or `blocklist.sh enable KEY`.
+# They are stored in categories.enabled; the lists behind them are defined in
+# categories.list. This file is only for extras and limits.
+
+# Extra list URLs on top of the selected categories (plain, hosts or adblock format).
+LIST_URLS=(
+  # "https://big.oisd.nl/domainswild2"   # OISD Big
+)
+
+# Merged list must be within these bounds or it is not applied.
+# ~200k domains costs CoreDNS about 15 MB RAM; 1.5M is a safe ceiling on a UCG Ultra (3 GB).
+MIN_ENTRIES=1000
+MAX_ENTRIES=1500000
+
+# Seconds between checks that UniFi hasn't regenerated the block file.
+WATCH_INTERVAL=15
+
+# Extra domains to block, one per line (optional).
+CUSTOM_BLOCK_FILE="/data/unifi-blocklist/custom-block.list"

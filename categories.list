@@ -1,0 +1,217 @@
+# Category catalog for unifi-blocklist.
+#
+# Groups and category names mirror the UniFi "CyberSecure Enhanced" content
+# filter (UniFi Network 10.6, group mapping taken from the UI bundle), backed by
+# free lists instead of the paid Proofpoint/Cloudflare database.
+#
+# S|<source id>|<url>                         a downloadable list
+# C|<group>|<KEY>|<label>|<source ids or ->   a category ("-" = no free list yet)
+#
+# Sources:  hg_*  HaGeZi  https://github.com/hagezi/dns-blocklists (GPL-3.0)
+#           nrd_* HaGeZi NRD  https://github.com/hagezi/nrd
+#           ut1_* Université Toulouse 1 blacklists https://dsi.ut-capitole.fr/blacklists (CC BY-SA 4.0),
+#                 GitHub mirror https://github.com/olbat/ut1-blacklists
+# Sizes in labels are entry counts as of Oct 2026. Lists shared by several categories are downloaded once.
+
+S|hg_light|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/light-onlydomains.txt
+S|hg_multi|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/multi-onlydomains.txt
+S|hg_pro|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro-onlydomains.txt
+S|hg_proplus|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro.plus-onlydomains.txt
+S|hg_ultimate|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/ultimate-onlydomains.txt
+S|hg_tif|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/tif.medium-onlydomains.txt
+S|hg_fake|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/fake-onlydomains.txt
+S|hg_popupads|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/popupads-onlydomains.txt
+S|hg_bypass|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/doh-vpn-proxy-bypass-onlydomains.txt
+S|hg_urlshort|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/urlshortener-onlydomains.txt
+S|hg_dyndns|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/dyndns-onlydomains.txt
+S|hg_hoster|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/hoster-onlydomains.txt
+S|hg_gambling|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/gambling.medium-onlydomains.txt
+S|hg_nsfw|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/nsfw-onlydomains.txt
+S|hg_social|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/social-onlydomains.txt
+S|hg_piracy|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/anti.piracy-onlydomains.txt
+S|hg_apple|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.apple-onlydomains.txt
+S|hg_amazon|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.amazon-onlydomains.txt
+S|hg_samsung|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.samsung-onlydomains.txt
+S|hg_lgwebos|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.lgwebos-onlydomains.txt
+S|hg_roku|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.roku-onlydomains.txt
+S|hg_windows|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.winoffice-onlydomains.txt
+S|hg_xiaomi|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.xiaomi-onlydomains.txt
+S|hg_huawei|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.huawei-onlydomains.txt
+S|hg_tiktok|https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.tiktok.extended-onlydomains.txt
+S|nrd_dga7|https://raw.githubusercontent.com/hagezi/nrd/main/domains/dga7.txt
+S|nrd_nrd7|https://raw.githubusercontent.com/hagezi/nrd/main/domains/nrd7.txt
+S|ut1_agressif|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/agressif/domains
+S|ut1_astrology|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/astrology/domains
+S|ut1_audiovideo|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/audio-video/domains
+S|ut1_bank|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/bank/domains
+S|ut1_bitcoin|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/bitcoin/domains
+S|ut1_blog|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/blog/domains
+S|ut1_chat|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/chat/domains
+S|ut1_cooking|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/cooking/domains
+S|ut1_cryptojacking|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/cryptojacking/domains
+S|ut1_dangerous|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/dangerous_material/domains
+S|ut1_dating|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/dating/domains
+S|ut1_drugs|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/drogue/domains
+S|ut1_fakenews|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/fakenews/domains
+S|ut1_filehosting|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/filehosting/domains
+S|ut1_financial|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/financial/domains
+S|ut1_forums|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/forums/domains
+S|ut1_games|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/games/domains
+S|ut1_hacking|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/hacking/domains
+S|ut1_jobsearch|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/jobsearch/domains
+S|ut1_lingerie|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/lingerie/domains
+S|ut1_manga|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/manga/domains
+S|ut1_mixedadult|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/mixed_adult/domains
+S|ut1_press|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/press/domains
+S|ut1_radio|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/radio/domains
+S|ut1_religion|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/sect/domains
+S|ut1_sexed|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/sexual_education/domains
+S|ut1_shopping|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/shopping/domains
+S|ut1_shortener|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/shortener/domains
+S|ut1_social|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/social_networks/domains
+S|ut1_sports|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/sports/domains
+S|ut1_stalkerware|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/stalkerware/domains
+S|ut1_translation|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/translation/domains
+S|ut1_warez|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/warez/domains
+S|ut1_webmail|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/webmail/domains
+S|ut1_ai|https://raw.githubusercontent.com/olbat/ut1-blacklists/master/blacklists/ai/domains
+
+# --- Not in UniFi: ad blocking tiers (pick one; higher tiers include lower) ---
+C|Ad Block (HaGeZi)|ADS_LIGHT|Light (57k)|hg_light
+C|Ad Block (HaGeZi)|ADS_NORMAL|Normal (161k)|hg_multi
+C|Ad Block (HaGeZi)|ADS_PRO|Pro - recommended (199k)|hg_pro
+C|Ad Block (HaGeZi)|ADS_PROPLUS|Pro++ (212k, may break some sites)|hg_proplus
+C|Ad Block (HaGeZi)|ADS_ULTIMATE|Ultimate (234k, breaks sites)|hg_ultimate
+
+C|Security & Threat Protection|BOTNETS|Botnets (Threat Intel 516k)|hg_tif
+C|Security & Threat Protection|COUNTERFEIT_BRANDS|Counterfeit Brands|hg_fake
+C|Security & Threat Protection|HACKING|Hacking|ut1_hacking
+C|Security & Threat Protection|SPYWARE|Spyware|ut1_stalkerware hg_tif
+C|Security & Threat Protection|MALWARE|Malware (Threat Intel 516k)|hg_tif
+C|Security & Threat Protection|ANONYMIZERS|Anonymizers (VPN/proxy/DoH bypass)|hg_bypass
+C|Security & Threat Protection|DECEPTIVE_ADS|Deceptive Ads|hg_popupads
+C|Security & Threat Protection|PHISHING|Phishing (Threat Intel 516k)|hg_tif
+C|Security & Threat Protection|DNS_TUNNELING|DNS Tunneling|-
+C|Security & Threat Protection|QUESTIONABLE_ACTIVITIES|Questionable Activities|-
+C|Security & Threat Protection|DGA_DOMAINS|DGA Domains (626k, heavy)|nrd_dga7
+C|Security & Threat Protection|SPAM|Spam|-
+
+C|New or Risky Domains|NEWLY_REGISTERED_DOMAINS|Newly Registered Domains (3.2M, exceeds MAX_ENTRIES)|nrd_nrd7
+C|New or Risky Domains|NEWLY_DISCOVERED_DOMAINS|Newly Discovered Domains|-
+C|New or Risky Domains|UNREACHABLE_DOMAINS|Unreachable Domains|-
+C|New or Risky Domains|EMPTY_DOMAINS|Empty Domains|-
+C|New or Risky Domains|PARKED_DOMAINS|Parked Domains|-
+C|New or Risky Domains|DYNAMIC_DNS|Dynamic DNS (HaGeZi extra)|hg_dyndns
+C|New or Risky Domains|BADWARE_HOSTERS|Badware Hosters (HaGeZi extra)|hg_hoster
+
+C|Networking Infrastructure|APIS|APIs|-
+C|Networking Infrastructure|PORTALS|Portals|-
+C|Networking Infrastructure|IT_SERVICES|IT Services|-
+C|Networking Infrastructure|LOGIN_SCREENS|Login Screens|-
+C|Networking Infrastructure|PRIVATE_IP_ADDRESSES|Private IP Addresses|-
+C|Networking Infrastructure|REDIRECTORS|Redirectors (URL shorteners)|hg_urlshort ut1_shortener
+C|Networking Infrastructure|SEARCH_ENGINES|Search Engines|-
+
+C|Adult and Sensitive Content|ADULT|Adult Themes|ut1_mixedadult
+C|Adult and Sensitive Content|PROFANITY|Profanity|-
+C|Adult and Sensitive Content|VIOLENCE|Violence|ut1_agressif
+C|Adult and Sensitive Content|UNRELIABLE_INFORMATION|Unreliable Information|ut1_fakenews
+C|Adult and Sensitive Content|ALCOHOL|Alcohol|-
+C|Adult and Sensitive Content|SEXUALITY|Sexuality|hg_nsfw
+C|Adult and Sensitive Content|CHILD_ABUSE|Child Abuse|-
+C|Adult and Sensitive Content|GAMBLING|Gambling (224k)|hg_gambling
+C|Adult and Sensitive Content|LINGERIE_AND_BIKINI|Lingerie and Bikini|ut1_lingerie
+C|Adult and Sensitive Content|SEX_EDUCATION|Sex Education|ut1_sexed
+C|Adult and Sensitive Content|DRUGS|Drugs|ut1_drugs
+C|Adult and Sensitive Content|NUDITY|Nudity|hg_nsfw
+C|Adult and Sensitive Content|TOBACCO|Tobacco|-
+C|Adult and Sensitive Content|HATE_SPEECH_AND_EXTREMISM|Hate Speech and Extremism|ut1_agressif
+C|Adult and Sensitive Content|PORNOGRAPHY|Pornography|hg_nsfw
+C|Adult and Sensitive Content|WEAPONS|Weapons|ut1_dangerous
+C|Adult and Sensitive Content|CIPA|CIPA|-
+C|Adult and Sensitive Content|SWIMSUITS|Swimsuits|-
+
+C|Social Media & Communications|CHAT|Chat|ut1_chat
+C|Social Media & Communications|DIGITAL_POSTCARDS|Digital Postcards|-
+C|Social Media & Communications|INSTANT_MESSENGERS|Instant Messengers|ut1_chat
+C|Social Media & Communications|PROFESSIONAL_NETWORKING|Professional Networking|-
+C|Social Media & Communications|MESSAGING|Messaging|ut1_chat
+C|Social Media & Communications|TRANSLATORS|Translators|ut1_translation
+C|Social Media & Communications|SOCIAL_NETWORKS|Social Networks|hg_social ut1_social
+C|Social Media & Communications|WEBMAIL|Webmail|ut1_webmail
+C|Social Media & Communications|PEER_TO_PEER|Peer To Peer|ut1_warez
+C|Social Media & Communications|AUDIO_STREAMING|Audio Streaming|ut1_audiovideo
+C|Social Media & Communications|FILE_SHARING|File Sharing (incl. torrents)|hg_piracy ut1_warez
+C|Social Media & Communications|INTERNET_CALLING_AND_VOIP|Internet Calling and VoIP|-
+C|Social Media & Communications|MEDIA_AND_FILE_HOSTING|Content Servers / File Hosting|ut1_filehosting
+C|Social Media & Communications|PHOTO_SHARING|Photo Sharing|-
+C|Social Media & Communications|RADIO|Radio|ut1_radio
+C|Social Media & Communications|VIDEO_STREAMING|Video Streaming|ut1_audiovideo
+
+C|Business & Professional|BUSINESS|Business|-
+C|Business & Professional|NEWS_AND_MEDIA|News and Media|ut1_press
+C|Business & Professional|ECONOMY_AND_FINANCE|Economy and Finance|ut1_financial ut1_bank
+C|Business & Professional|MAGAZINES|Magazines|ut1_press
+C|Business & Professional|REAL_ESTATE|Real Estate|-
+C|Business & Professional|TECHNOLOGY|Technology|-
+C|Business & Professional|GOVERNMENT|Government|-
+C|Business & Professional|JOB_SEARCH_AND_CAREERS|Job Search and Careers|ut1_jobsearch
+
+C|Culture & Entertainment|AUCTIONS_AND_MARKETPLACES|Auctions and Marketplaces|ut1_shopping
+C|Culture & Entertainment|CLOTHING|Clothing|-
+C|Culture & Entertainment|COUPONS|Coupons|-
+C|Culture & Entertainment|ECOMMERCE|Ecommerce|ut1_shopping
+C|Culture & Entertainment|EDUCATION|Education|-
+C|Culture & Entertainment|EDUCATIONAL_INSTITUTIONS|Educational Institutions|-
+C|Culture & Entertainment|FORUMS|Forums|ut1_forums
+C|Culture & Entertainment|HEALTH_AND_FITNESS|Health and Fitness|-
+C|Culture & Entertainment|MUSIC|Music|ut1_audiovideo
+C|Culture & Entertainment|PARANORMAL|Paranormal|-
+C|Culture & Entertainment|SAFE_FOR_KIDS|Safe for Kids|-
+C|Culture & Entertainment|SCIENCE|Science|-
+C|Culture & Entertainment|SHOPPING|Shopping|ut1_shopping
+C|Culture & Entertainment|ARTS_AND_CRAFTS|Arts and Crafts|-
+C|Culture & Entertainment|FASHION|Fashion|-
+C|Culture & Entertainment|MOVIES|Movies|ut1_audiovideo
+C|Culture & Entertainment|ASTROLOGY|Astrology|ut1_astrology
+C|Culture & Entertainment|HOME_AND_GARDEN|Home and Garden|-
+C|Culture & Entertainment|RELIGION|Religion (sects)|ut1_religion
+C|Culture & Entertainment|BLOGS|Blogs|ut1_blog
+C|Culture & Entertainment|FOOD_AND_DRINK|Food and Drink|ut1_cooking
+C|Culture & Entertainment|PHOTOGRAPHY|Photography|-
+C|Culture & Entertainment|BODY_ART|Body Art|-
+C|Culture & Entertainment|LIFESTYLE|Lifestyle|-
+C|Culture & Entertainment|SPACE_AND_ASTRONOMY|Space and Astronomy|-
+C|Culture & Entertainment|CARTOONS_AND_ANIME|Cartoons and Anime|ut1_manga
+C|Culture & Entertainment|GAMING|Gaming|ut1_games
+C|Culture & Entertainment|SPORTS|Sports|ut1_sports
+C|Culture & Entertainment|DATING_AND_RELATIONSHIPS|Dating and Relationships|ut1_dating
+C|Culture & Entertainment|PARENTING|Parenting|-
+C|Culture & Entertainment|TRAVEL|Travel|-
+C|Culture & Entertainment|COMIC_BOOKS|Comic Books|ut1_manga
+C|Culture & Entertainment|HOME_VIDEO|Home Video|-
+C|Culture & Entertainment|TELEVISION|Television|-
+C|Culture & Entertainment|FINE_ARTS|Fine Arts|-
+C|Culture & Entertainment|PETS|Pets|-
+C|Culture & Entertainment|VEHICLES|Vehicles|-
+C|Culture & Entertainment|ENTERTAINMENT|Entertainment|-
+C|Culture & Entertainment|HUMOR|Humor|-
+C|Culture & Entertainment|ART|Art|-
+C|Culture & Entertainment|HOBBIES_AND_INTERESTS|Hobbies and Interests|-
+C|Culture & Entertainment|POLITICS|Politics|-
+C|Culture & Entertainment|WEATHER|Weather|-
+
+C|AI & Crypto|ARTIFICIAL_INTELLIGENCE|Artificial Intelligence|ut1_ai
+C|AI & Crypto|CRYPTOMINING|Cryptomining|ut1_cryptojacking hg_tif
+C|AI & Crypto|CRYPTOCURRENCY|Cryptocurrency|ut1_bitcoin
+
+# --- Not in UniFi: device/vendor telemetry (HaGeZi native trackers) ---
+C|Device Telemetry (HaGeZi)|TRACK_APPLE|Apple|hg_apple
+C|Device Telemetry (HaGeZi)|TRACK_AMAZON|Amazon / Alexa / Fire TV|hg_amazon
+C|Device Telemetry (HaGeZi)|TRACK_SAMSUNG|Samsung|hg_samsung
+C|Device Telemetry (HaGeZi)|TRACK_LGWEBOS|LG webOS TVs|hg_lgwebos
+C|Device Telemetry (HaGeZi)|TRACK_ROKU|Roku|hg_roku
+C|Device Telemetry (HaGeZi)|TRACK_WINDOWS|Windows / Office|hg_windows
+C|Device Telemetry (HaGeZi)|TRACK_XIAOMI|Xiaomi|hg_xiaomi
+C|Device Telemetry (HaGeZi)|TRACK_HUAWEI|Huawei|hg_huawei
+C|Device Telemetry (HaGeZi)|TRACK_TIKTOK|TikTok (extended)|hg_tiktok

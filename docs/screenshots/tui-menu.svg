@@ -1,0 +1,238 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="928" height="574" viewBox="0 0 928 574">
+<rect width="928" height="574" rx="8" fill="#1e1e1e"/>
+<rect width="928" height="28" rx="8" fill="#323232"/><rect y="20" width="928" height="8" fill="#323232"/>
+<circle cx="18" cy="14" r="6" fill="#ff5f56"/><circle cx="38" cy="14" r="6" fill="#ffbd2e"/><circle cx="58" cy="14" r="6" fill="#27c93f"/>
+<text x="464.0" y="18" fill="#a0a0a0" font-family="Menlo,Consolas,monospace" font-size="12" text-anchor="middle">ssh -t root@gateway /data/unifi-blocklist/blocklist.sh menu</text>
+<g font-family="Menlo,Consolas,DejaVu Sans Mono,monospace" font-size="15" xml:space="preserve">
+<rect x="14.0" y="40.0" width="900.6" height="18.5" fill="#0000ee"/>
+<rect x="14.0" y="58.0" width="900.6" height="18.5" fill="#0000ee"/>
+<rect x="14.0" y="76.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="76.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="76.0" width="135.6" height="18.5" fill="#0000ee"/>
+<text x="131.0 140.0 149.0 158.0 167.0 176.0 185.0 194.0 203.0 212.0 221.0 230.0 239.0 248.0 257.0 266.0 275.0 284.0 293.0 302.0 311.0 320.0 329.0 338.0 347.0 356.0 365.0" y="89.5" fill="#ffffff" font-weight="bold">┌──────────────────────────</text>
+<text x="374.0 383.0 392.0 401.0 410.0 419.0 428.0 437.0 446.0 455.0 464.0 473.0 482.0 491.0 500.0" y="89.5" fill="#5c5cff" font-weight="bold">unifi-blocklist</text>
+<text x="509.0 518.0 527.0 536.0 545.0 554.0 563.0 572.0 581.0 590.0 599.0 608.0 617.0 626.0 635.0 644.0 653.0 662.0 671.0 680.0 689.0 698.0 707.0 716.0 725.0 734.0 743.0 752.0 761.0" y="89.5" fill="#ffffff" font-weight="bold">─────────────────────────────</text>
+<text x="770.0" y="89.5" fill="#000000">┐</text>
+<rect x="14.0" y="94.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="94.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="94.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="94.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="107.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0 158.0 167.0 176.0 185.0 203.0 212.0 221.0 230.0 239.0 248.0 257.0 275.0 284.0 293.0 302.0 311.0 320.0 338.0 347.0 356.0 365.0 374.0 383.0 392.0 401.0 410.0 419.0 437.0 446.0 455.0 464.0 473.0 482.0 500.0 509.0 527.0 536.0 545.0 554.0 572.0 581.0 590.0 599.0 608.0 617.0 770.0" y="107.5" fill="#000000">UniFicontentfiltercategoriesbackedbyfreelists.│</text>
+<rect x="14.0" y="112.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="112.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="112.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="112.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="125.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0 158.0 167.0 176.0 185.0 194.0 203.0 221.0 230.0 239.0 257.0 266.0 275.0 284.0 293.0 311.0 320.0 329.0 338.0 356.0 365.0 374.0 392.0 401.0 410.0 419.0 428.0 446.0 464.0 473.0 482.0 491.0 500.0 509.0 527.0 536.0 545.0 554.0 563.0 581.0 590.0 599.0 608.0 617.0 626.0 635.0 644.0 653.0 671.0 680.0 689.0 770.0" y="125.5" fill="#000000">Changesaresavedwhenyouleaveagroup;Applydownloadsand│</text>
+<rect x="14.0" y="130.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="130.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="130.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="130.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="143.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0 158.0 167.0 176.0 185.0 194.0 203.0 212.0 770.0" y="143.5" fill="#000000">reloads.│</text>
+<rect x="14.0" y="148.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="148.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="148.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="148.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="161.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0 158.0 167.0 176.0 185.0 194.0 203.0 212.0 221.0 230.0 239.0 248.0 257.0 266.0 275.0 284.0 293.0 302.0 311.0 320.0 329.0 338.0 347.0 356.0 365.0 374.0 383.0 392.0 401.0 410.0 419.0 428.0 437.0 446.0 455.0 464.0 473.0 482.0 491.0 500.0 509.0 518.0 527.0 536.0 545.0 554.0 563.0 572.0 581.0 590.0 599.0 608.0 617.0 626.0 635.0 644.0 653.0 662.0 671.0 680.0 689.0 698.0 707.0 716.0 725.0 734.0 743.0" y="161.5" fill="#000000">┌──────────────────────────────────────────────────────────────────</text>
+<text x="752.0" y="161.5" fill="#ffffff" font-weight="bold">┐</text>
+<text x="770.0" y="161.5" fill="#000000">│</text>
+<rect x="14.0" y="166.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="166.0" width="108.6" height="18.5" fill="#e5e5e5"/>
+<rect x="239.0" y="166.0" width="9.6" height="18.5" fill="#0000ee"/>
+<rect x="248.0" y="166.0" width="27.6" height="18.5" fill="#e5e5e5"/>
+<rect x="275.0" y="166.0" width="387.6" height="18.5" fill="#0000ee"/>
+<rect x="662.0" y="166.0" width="117.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="166.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="166.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="179.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="179.5" fill="#000000">│</text>
+<text x="239.0" y="179.5" fill="#ff0000" font-weight="bold">1</text>
+<text x="275.0 284.0 302.0 311.0 320.0 329.0 338.0 356.0 365.0 374.0 383.0 392.0 401.0 410.0 419.0 599.0 608.0 617.0 644.0 653.0" y="179.5" fill="#ffffff" font-weight="bold">AdBlock(HaGeZi)1/5on</text>
+<text x="752.0" y="179.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="179.5" fill="#000000">│</text>
+<rect x="14.0" y="184.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="184.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="184.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="184.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="197.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="197.5" fill="#000000">│</text>
+<text x="239.0" y="197.5" fill="#cd0000">2</text>
+<text x="275.0 284.0 293.0 302.0 311.0 320.0 329.0 338.0 356.0 374.0 383.0 392.0 401.0 410.0 419.0 437.0 446.0 455.0 464.0 473.0 482.0 491.0 500.0 509.0 518.0 599.0 608.0 617.0 644.0 653.0" y="197.5" fill="#000000">Security&amp;ThreatProtection6/9on</text>
+<text x="752.0" y="197.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="197.5" fill="#000000">│</text>
+<rect x="14.0" y="202.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="202.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="202.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="202.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="215.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="215.5" fill="#000000">│</text>
+<text x="239.0" y="215.5" fill="#cd0000">3</text>
+<text x="275.0 284.0 293.0 311.0 320.0 338.0 347.0 356.0 365.0 374.0 392.0 401.0 410.0 419.0 428.0 437.0 446.0 599.0 608.0 617.0 644.0 653.0" y="215.5" fill="#000000">NeworRiskyDomains0/3on</text>
+<text x="752.0" y="215.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="215.5" fill="#000000">│</text>
+<rect x="14.0" y="220.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="220.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="220.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="220.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="233.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="233.5" fill="#000000">│</text>
+<text x="239.0" y="233.5" fill="#cd0000">4</text>
+<text x="275.0 284.0 293.0 302.0 311.0 320.0 329.0 338.0 347.0 356.0 374.0 383.0 392.0 401.0 410.0 419.0 428.0 437.0 446.0 455.0 464.0 473.0 482.0 491.0 599.0 608.0 617.0 644.0 653.0" y="233.5" fill="#000000">NetworkingInfrastructure0/1on</text>
+<text x="752.0" y="233.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="233.5" fill="#000000">│</text>
+<rect x="14.0" y="238.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="238.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="238.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="238.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="251.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="251.5" fill="#000000">│</text>
+<text x="239.0" y="251.5" fill="#cd0000">5</text>
+<text x="275.0 284.0 293.0 302.0 311.0 329.0 338.0 347.0 365.0 374.0 383.0 392.0 401.0 410.0 419.0 428.0 437.0 455.0 464.0 473.0 482.0 491.0 500.0 509.0 599.0 608.0 617.0 626.0 644.0 653.0" y="251.5" fill="#000000">AdultandSensitiveContent1/12on</text>
+<text x="752.0" y="251.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="251.5" fill="#000000">│</text>
+<rect x="14.0" y="256.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="256.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="256.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="256.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="269.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="269.5" fill="#000000">│</text>
+<text x="239.0" y="269.5" fill="#cd0000">6</text>
+<text x="275.0 284.0 293.0 302.0 311.0 320.0 338.0 347.0 356.0 365.0 374.0 392.0 410.0 419.0 428.0 437.0 446.0 455.0 464.0 473.0 482.0 491.0 500.0 509.0 518.0 527.0 599.0 608.0 617.0 626.0 644.0 653.0" y="269.5" fill="#000000">SocialMedia&amp;Communications0/12on</text>
+<text x="752.0" y="269.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="269.5" fill="#000000">│</text>
+<rect x="14.0" y="274.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="274.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="274.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="274.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="287.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="287.5" fill="#000000">│</text>
+<text x="239.0" y="287.5" fill="#cd0000">7</text>
+<text x="275.0 284.0 293.0 302.0 311.0 320.0 329.0 338.0 356.0 374.0 383.0 392.0 401.0 410.0 419.0 428.0 437.0 446.0 455.0 464.0 473.0 599.0 608.0 617.0 644.0 653.0" y="287.5" fill="#000000">Business&amp;Professional0/4on</text>
+<text x="752.0" y="287.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="287.5" fill="#000000">│</text>
+<rect x="14.0" y="292.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="292.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="292.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="292.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="305.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="305.5" fill="#000000">│</text>
+<text x="239.0" y="305.5" fill="#cd0000">8</text>
+<text x="275.0 284.0 293.0 302.0 311.0 320.0 329.0 347.0 365.0 374.0 383.0 392.0 401.0 410.0 419.0 428.0 437.0 446.0 455.0 464.0 473.0 599.0 608.0 617.0 626.0 644.0 653.0" y="305.5" fill="#000000">Culture&amp;Entertainment0/15on</text>
+<text x="752.0" y="305.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="305.5" fill="#000000">│</text>
+<rect x="14.0" y="310.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="310.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="310.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="310.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="323.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="323.5" fill="#000000">│</text>
+<text x="239.0" y="323.5" fill="#cd0000">9</text>
+<text x="275.0 284.0 302.0 320.0 329.0 338.0 347.0 356.0 365.0 599.0 608.0 617.0 644.0 653.0" y="323.5" fill="#000000">AI&amp;Crypto2/3on</text>
+<text x="752.0" y="323.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="323.5" fill="#000000">│</text>
+<rect x="14.0" y="328.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="328.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="328.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="328.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="341.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="341.5" fill="#000000">│</text>
+<text x="239.0" y="341.5" fill="#cd0000">1</text>
+<text x="248.0" y="341.5" fill="#5c5cff" font-weight="bold">0</text>
+<text x="275.0 284.0 293.0 302.0 311.0 320.0 338.0 347.0 356.0 365.0 374.0 383.0 392.0 401.0 410.0 428.0 437.0 446.0 455.0 464.0 473.0 482.0 491.0 599.0 608.0 617.0 644.0 653.0" y="341.5" fill="#000000">DeviceTelemetry(HaGeZi)0/9on</text>
+<text x="752.0" y="341.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="341.5" fill="#000000">│</text>
+<rect x="14.0" y="346.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="346.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="346.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="346.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="359.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="359.5" fill="#000000">│</text>
+<text x="752.0" y="359.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="359.5" fill="#000000">│</text>
+<rect x="14.0" y="364.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="364.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="364.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="364.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="377.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="377.5" fill="#000000">│</text>
+<text x="239.0" y="377.5" fill="#cd0000">A</text>
+<text x="275.0 284.0 293.0 302.0 311.0 329.0 338.0 347.0 365.0 374.0 383.0 392.0 401.0 410.0 419.0 428.0 437.0 455.0 464.0 473.0 482.0 491.0 509.0 527.0 536.0 545.0 554.0 563.0 572.0 581.0" y="377.5" fill="#000000">Applynow(downloadlists+reload)</text>
+<text x="752.0" y="377.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="377.5" fill="#000000">│</text>
+<rect x="14.0" y="382.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="382.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="382.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="382.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="395.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="395.5" fill="#000000">│</text>
+<text x="239.0" y="395.5" fill="#cd0000">S</text>
+<text x="275.0 284.0 293.0 302.0 311.0 320.0" y="395.5" fill="#000000">Status</text>
+<text x="752.0" y="395.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="395.5" fill="#000000">│</text>
+<rect x="14.0" y="400.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="400.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="400.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="400.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="413.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="413.5" fill="#000000">│</text>
+<text x="239.0" y="413.5" fill="#cd0000">Q</text>
+<text x="275.0 284.0 293.0 302.0" y="413.5" fill="#000000">Quit</text>
+<text x="752.0" y="413.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="413.5" fill="#000000">│</text>
+<rect x="14.0" y="418.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="418.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="418.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="418.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="431.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="431.5" fill="#000000">│</text>
+<text x="752.0" y="431.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="431.5" fill="#000000">│</text>
+<rect x="14.0" y="436.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="436.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="436.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="436.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="449.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="449.5" fill="#000000">│</text>
+<text x="752.0" y="449.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="770.0" y="449.5" fill="#000000">│</text>
+<rect x="14.0" y="454.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="454.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="454.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="454.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="467.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="149.0" y="467.5" fill="#000000">└</text>
+<text x="158.0 167.0 176.0 185.0 194.0 203.0 212.0 221.0 230.0 239.0 248.0 257.0 266.0 275.0 284.0 293.0 302.0 311.0 320.0 329.0 338.0 347.0 356.0 365.0 374.0 383.0 392.0 401.0 410.0 419.0 428.0 437.0 446.0 455.0 464.0 473.0 482.0 491.0 500.0 509.0 518.0 527.0 536.0 545.0 554.0 563.0 572.0 581.0 590.0 599.0 608.0 617.0 626.0 635.0 644.0 653.0 662.0 671.0 680.0 689.0 698.0 707.0 716.0 725.0 734.0 743.0 752.0" y="467.5" fill="#ffffff" font-weight="bold">──────────────────────────────────────────────────────────────────┘</text>
+<text x="770.0" y="467.5" fill="#000000">│</text>
+<rect x="14.0" y="472.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="472.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="472.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="472.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0 140.0 149.0 158.0 167.0 176.0 185.0 194.0 203.0 212.0 221.0 230.0 239.0 248.0 257.0 266.0 275.0 284.0 293.0 302.0 311.0 320.0 329.0 338.0 347.0 356.0 365.0 374.0 383.0 392.0 401.0 410.0 419.0 428.0 437.0 446.0 455.0 464.0 473.0 482.0 491.0 500.0 509.0 518.0 527.0 536.0 545.0 554.0 563.0 572.0 581.0 590.0 599.0 608.0 617.0 626.0 635.0 644.0 653.0 662.0 671.0 680.0 689.0 698.0 707.0 716.0 725.0 734.0 743.0 752.0 761.0" y="485.5" fill="#ffffff" font-weight="bold">├──────────────────────────────────────────────────────────────────────</text>
+<text x="770.0" y="485.5" fill="#000000">┤</text>
+<rect x="14.0" y="490.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="490.0" width="198.6" height="18.5" fill="#e5e5e5"/>
+<rect x="329.0" y="490.0" width="72.6" height="18.5" fill="#0000ee"/>
+<rect x="401.0" y="490.0" width="378.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="490.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="490.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="503.5" fill="#ffffff" font-weight="bold">│</text>
+<text x="329.0" y="503.5" fill="#ffffff" font-weight="bold">&lt;</text>
+<text x="356.0 365.0" y="503.5" fill="#ffff00" font-weight="bold">OK</text>
+<text x="392.0" y="503.5" fill="#ffffff" font-weight="bold">&gt;</text>
+<text x="500.0" y="503.5" fill="#000000">&lt;</text>
+<text x="518.0 527.0 536.0 545.0" y="503.5" fill="#7f7f7f" font-weight="bold">Quit</text>
+<text x="563.0 770.0" y="503.5" fill="#000000">&gt;│</text>
+<rect x="14.0" y="508.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="131.0" y="508.0" width="648.6" height="18.5" fill="#e5e5e5"/>
+<rect x="779.0" y="508.0" width="18.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="508.0" width="117.6" height="18.5" fill="#0000ee"/>
+<text x="131.0" y="521.5" fill="#ffffff" font-weight="bold">└</text>
+<text x="140.0 149.0 158.0 167.0 176.0 185.0 194.0 203.0 212.0 221.0 230.0 239.0 248.0 257.0 266.0 275.0 284.0 293.0 302.0 311.0 320.0 329.0 338.0 347.0 356.0 365.0 374.0 383.0 392.0 401.0 410.0 419.0 428.0 437.0 446.0 455.0 464.0 473.0 482.0 491.0 500.0 509.0 518.0 527.0 536.0 545.0 554.0 563.0 572.0 581.0 590.0 599.0 608.0 617.0 626.0 635.0 644.0 653.0 662.0 671.0 680.0 689.0 698.0 707.0 716.0 725.0 734.0 743.0 752.0 761.0 770.0" y="521.5" fill="#000000">──────────────────────────────────────────────────────────────────────┘</text>
+<rect x="14.0" y="526.0" width="135.6" height="18.5" fill="#0000ee"/>
+<rect x="149.0" y="526.0" width="648.6" height="18.5" fill="#000000"/>
+<rect x="797.0" y="526.0" width="117.6" height="18.5" fill="#0000ee"/>
+<rect x="14.0" y="544.0" width="900.6" height="18.5" fill="#0000ee"/>
+</g></svg>
