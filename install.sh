@@ -25,9 +25,8 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 if [ -z "$TAG" ] && [ -z "$BRANCH" ]; then
-  # The releases/latest page redirects to .../releases/tag/<newest tag>.
-  TAG="$(curl -fsS --max-time 20 -o /dev/null -w '%{redirect_url}' "https://github.com/${REPO}/releases/latest" || true)"
-  TAG="${TAG##*/releases/tag/}"
+  TAG="$(curl -fsS --max-time 20 -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${REPO}/releases/latest" \
+    | grep -o -m1 '"tag_name": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/' || true)"
   [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Could not find the latest release, installing main instead."; TAG=""; BRANCH=main; }
 fi
 if [ -n "$TAG" ]; then

@@ -10,7 +10,7 @@
 
 set -uo pipefail
 
-VERSION="1.1.0"
+VERSION="1.1.1"
 REPO="msaifuddin/unifi-blocklist"
 
 BASE_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -53,14 +53,14 @@ log() { logger -t unifi-blocklist -- "$*"; echo "$(date '+%F %T') $*"; }
 
 # --- releases ---------------------------------------------------------------
 
-# Tag of the newest GitHub release (e.g. v1.1.0), read from the redirect of the
-# releases/latest page so no API token or JSON parsing is needed.
+# Tag of the newest GitHub release (e.g. v1.1.0). Uses the API without a token
+# (60 requests per hour per address; this runs twice a day).
 latest_release() {
-  local url
-  url="$(curl -fsS --max-time 20 -o /dev/null -w '%{redirect_url}' "https://github.com/${REPO}/releases/latest")" || return 1
-  url="${url##*/releases/tag/}"
-  [[ "$url" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
-  echo "$url"
+  local tag
+  tag="$(curl -fsS --max-time 20 -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${REPO}/releases/latest" \
+    | grep -o -m1 '"tag_name": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')" || return 1
+  [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
+  echo "$tag"
 }
 
 # True if version $1 is newer than $2.
