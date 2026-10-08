@@ -164,10 +164,42 @@ The full mapping of categories to lists is in [`categories.list`](categories.lis
 | See all commands | `/data/unifi-blocklist/blocklist.sh help` (or run it without a command) |
 | Update the lists now | `systemctl start unifi-blocklist-update` (otherwise every 12 hours) |
 | See which version is installed | `/data/unifi-blocklist/blocklist.sh version` (also shown by `status` and the menu) |
-| Update this project | `/data/unifi-blocklist/blocklist.sh upgrade`. Your settings and categories are kept. `status` and the menu show when a newer release is available. Installs from before version 1.1.0 don't have this command: run the install command from step 5 again instead. |
+| Update this project | `/data/unifi-blocklist/blocklist.sh upgrade` (see [Updating](#updating)) |
 | Add your own list URLs | Edit `LIST_URLS` in `/data/unifi-blocklist/blocklist.conf` |
 
 Blocked domains appear in the UniFi UI as content-filter blocks.
+
+## Updating
+
+**How you find out.** Each time the lists are updated, the script also asks GitHub for the newest release of this project. That happens 5 minutes after the gateway starts, every 12 hours after that, and whenever you run an update yourself (menu **Apply**, `blocklist.sh update`). A new release is therefore noticed within about half a day. If it's newer than what's installed, `status` and the menu show:
+
+```
+Version     : 1.1.1 (update available: 1.1.2, run: blocklist.sh upgrade)
+```
+
+The same line is written to the log (`grep unifi-blocklist /var/log/messages`). Nothing is installed automatically.
+
+**How to update.** Run:
+
+```sh
+/data/unifi-blocklist/blocklist.sh upgrade
+```
+
+It installs the newest release and keeps your settings, categories and custom domains. If you're already up to date it says so; `upgrade --force` reinstalls anyway. Versions before 1.1.0 don't have this command: run the install command from step 5 once instead.
+
+**Install a specific version.** To install an older release (for example if a new one causes problems), or the development version:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/msaifuddin/unifi-blocklist/main/install.sh | TAG=v1.1.1 bash
+curl -fsSL https://raw.githubusercontent.com/msaifuddin/unifi-blocklist/main/install.sh | BRANCH=main bash
+```
+
+All releases and their changes are listed on the [releases page](https://github.com/msaifuddin/unifi-blocklist/releases).
+
+**Details.**
+- The check is one request to `api.github.com` per list update, without any account or token.
+- If GitHub can't be reached, the check is skipped. It never affects blocking or the list update.
+- To turn the check off, set `UPDATE_CHECK=0` in `/data/unifi-blocklist/blocklist.conf`.
 
 ## Uninstall
 
@@ -239,7 +271,7 @@ The background services are systemd units copied into `/etc/systemd/system`. The
 | `blocklist.conf` | Your settings: extra list URLs, size limits (created from `blocklist.conf.example`) |
 | `categories.enabled` | Your selected categories |
 | `custom-block.list` | Optional extra domains to block |
-| `state/` | Downloaded lists, merged list, applied checksum |
+| `state/` | Downloaded lists (`sources/`), merged list, applied checksum, the block file before the last apply (`target.prev`, used for rollback), newest release seen (`latest-version`) |
 | `systemd/` | Service and timer definitions |
 
 ### Known limitations
@@ -254,6 +286,15 @@ The background services are systemd units copied into `/etc/systemd/system`. The
 - Free sources for the categories still marked n/a (Spam, Parked Domains, Alcohol, Tobacco, …)
 
 Contributions and test reports from other models are welcome.
+
+### Making a release
+
+The update check compares the `VERSION` line in `blocklist.sh` with the tag of the newest GitHub release, so both must match:
+
+1. Raise `VERSION` in `blocklist.sh` (for example `1.1.3`), commit and push.
+2. Publish a GitHub release with the tag `v` + that version (`v1.1.3`) on that commit, marked as the latest release.
+
+Only published releases count. Pushing to `main`, a tag without a release, drafts and pre-releases don't trigger the update notice, and the installer doesn't install them by default.
 
 ## Credits
 
