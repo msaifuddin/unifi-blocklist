@@ -11,7 +11,7 @@ On UniFi OS, the detailed content-filter categories (Malware, Phishing, Gambling
 - lists refresh automatically every 12 hours.
 
 > [!IMPORTANT]
-> This is an unofficial, community project and is not affiliated with or endorsed by Ubiquiti. It relies on undocumented internals of UniFi OS, which can change with any firmware update. It has been **tested on a UniFi Cloud Gateway Ultra only** (details below). Other gateways that use the same engine should work, and the installer checks this before changing anything, but they have not been tested. Use at your own risk.
+> This is an unofficial project and is not affiliated with or endorsed by Ubiquiti. It relies on undocumented internals of UniFi OS, which can change with any firmware update. It has only been **tested on a UniFi Cloud Gateway Ultra** (details below). Other gateways with the same engine may work but haven't been tested; the installer checks compatibility before changing anything. Use at your own risk.
 
 ## Screenshots
 
@@ -32,11 +32,9 @@ Inside a group: the same categories as the greyed-out UniFi list. Categories wit
 | UniFi Network | 10.6.106, Content Filter with Ad Block (CyberSecure, no subscription) |
 | Filtering engine | UniFi CoreDNS `1.11.3-10+g74ebc1e61302` |
 
-**Probably works** on other UniFi OS 4.x/5.x gateways that have the same content-filter engine, for example UCG Max, UCG Fiber, UDM / UDM Pro / UDM SE, UDR / UDR7 and UXG models. This is untested. Run the built-in check (step 4 below) to find out. It only reads, and the installer refuses to continue if it fails.
+**May work** on other UniFi OS 4.x/5.x gateways that have the same content-filter engine, for example UCG Max, UCG Fiber, UDM / UDM Pro / UDM SE, UDR / UDR7 and UXG models. This is untested. Run the built-in check (step 4 below) to find out. It only reads, and the installer refuses to continue if it fails.
 
 **Will not work** on gateways without UniFi OS, such as the USG and older EdgeOS-based models.
-
-If you try it on another model, please open an issue with your model, firmware version and the output of `blocklist.sh check`, whether it works or not.
 
 ## Installation
 
@@ -214,7 +212,7 @@ rm -rf /data/unifi-blocklist                   # optional: delete all files
 
 **Nothing is blocked.** Check that Ad Block is on for that network in the UniFi UI, then run `blocklist.sh check` and `blocklist.sh status`. Devices that use their own encrypted DNS (DNS-over-HTTPS in browsers, Android "Private DNS") bypass the gateway entirely. The **Anonymizers** category blocks most of these bypass services.
 
-**After a firmware update.** Run `blocklist.sh status`. If the watcher or timer isn't running, run the install command from step 5 again. If `check` now fails, the firmware has changed how filtering works; please open an issue.
+**After a firmware update.** Run `blocklist.sh status`. If the watcher or timer isn't running, run the install command from step 5 again. If `check` now fails, the firmware has changed how filtering works and this project may not work with it; `blocklist.sh uninstall` restores UniFi's own filtering.
 
 **"Applied: NO" in status.** UniFi has just rewritten its files (for example after a settings change). The watcher re-applies the list within about 30 seconds.
 
@@ -280,19 +278,6 @@ The background services are systemd units copied into `/etc/systemd/system`. The
 - The UniFi UI counts these blocks as content-filter blocks, not as "Ad Block".
 - UniFi's own cloud lookup still runs for domains not on the list. It can't be turned off without also turning off the redirect this project depends on.
 - Not yet tested: behaviour across a firmware update, lists above 1 million domains, and models other than the UCG Ultra.
-
-## Contributing
-
-Contributions and test reports from other models are welcome.
-
-### Making a release
-
-The update check compares the `VERSION` line in `blocklist.sh` with the tag of the newest GitHub release, so both must match:
-
-1. Raise `VERSION` in `blocklist.sh` (for example `1.1.3`), commit and push.
-2. Publish a GitHub release with the tag `v` + that version (`v1.1.3`) on that commit, marked as the latest release.
-
-Only published releases count. Pushing to `main`, a tag without a release, drafts and pre-releases don't trigger the update notice, and the installer doesn't install them by default.
 
 ## Credits
 
