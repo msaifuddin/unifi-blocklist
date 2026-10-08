@@ -9,13 +9,19 @@ LIST_URLS=(
   # "https://big.oisd.nl/domainswild2"   # OISD Big
 )
 
-# Merged list must be within these bounds or it is not applied.
+# Merged list must be within these bounds or it is not applied. MIN_ENTRIES only
+# applies when downloaded lists are selected (not to custom domains on their own).
 # ~200k domains costs CoreDNS about 15 MB RAM; 1.5M is a safe ceiling on a UCG Ultra (3 GB).
 MIN_ENTRIES=1000
 MAX_ENTRIES=1500000
 
 # Seconds between checks that UniFi hasn't regenerated the block file.
 WATCH_INTERVAL=15
+
+# Seconds to wait after a restart for CoreDNS to load the list and block again.
+# Loading takes about 10 s per 900,000 domains; if it doesn't block in time, the
+# previous list is put back.
+RESTART_TIMEOUT=120
 
 # Extra domains to block, one per line (optional).
 CUSTOM_BLOCK_FILE="/data/unifi-blocklist/custom-block.list"

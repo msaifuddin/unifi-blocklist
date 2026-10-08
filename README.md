@@ -107,7 +107,7 @@ ssh -t root@192.168.1.1 /data/unifi-blocklist/blocklist.sh menu
 
 - Use the arrow keys and Enter to open a group.
 - Press Space to switch a category on or off, then Enter to confirm.
-- Choose **Apply now** to download the lists and activate them. This takes from a few seconds to a minute, and DNS pauses for a few seconds while the filter reloads.
+- Choose **Apply now** to download the lists and activate them. This takes from a few seconds to a minute. DNS then pauses while the filter loads the new list: about 10 seconds for 900,000 domains, less for smaller lists.
 
 The same can be done without the menu:
 
@@ -125,7 +125,7 @@ The groups and names match the CyberSecure Enhanced list in the UniFi UI. Each c
 
 | Group | Categories with a free list |
 |---|---|
-| Ad Block (HaGeZi) | Light, Normal, **Pro** (recommended), Pro++, Ultimate. Pick one; each level includes the one before it. |
+| Ad Block (HaGeZi) | Light, Normal, **Pro** (recommended), Pro++, Ultimate. Only one can be on; each level includes the one before it. |
 | Security & Threat Protection | Botnets, Malware, Phishing, Counterfeit Brands, Hacking, Spyware, Anonymizers (VPN/proxy/DoH bypass), Deceptive Ads, DGA Domains |
 | New or Risky Domains | Newly Registered Domains (too large for most gateways), Dynamic DNS, Badware Hosters |
 | Networking Infrastructure | Redirectors (URL shorteners) |
@@ -144,7 +144,7 @@ The full mapping of categories to lists is in [`categories.list`](categories.lis
 
 | I want to… | Do this |
 |---|---|
-| Unblock a site | Add it to the **allow list** in the UniFi UI (Content Filter). It takes effect within about 15 seconds. |
+| Unblock a site | Add it to the **allow list** in the UniFi UI (Content Filter). It takes effect within about 40 seconds. |
 | Block an extra site | Add it to the **block list** in the UniFi UI, or to `/data/unifi-blocklist/custom-block.list` (one domain per line) and run `systemctl start unifi-blocklist-update`. |
 | See what's being blocked | UniFi UI, or `tail -f /var/log/ulog/content_filtering.log` on the gateway |
 | Check that everything is running | `/data/unifi-blocklist/blocklist.sh status` |
@@ -169,7 +169,9 @@ rm -rf /data/unifi-blocklist                   # optional: delete all files
 
 **After a firmware update.** Run `blocklist.sh status`. If the watcher or timer isn't running, run the install command from step 5 again. If `check` now fails, the firmware has changed how filtering works; please open an issue.
 
-**"Applied: NO" in status.** UniFi has just rewritten its files (for example after a settings change). The watcher re-applies the list within about 15 seconds.
+**"Applied: NO" in status.** UniFi has just rewritten its files (for example after a settings change). The watcher re-applies the list within about 30 seconds.
+
+**"Applied: pending" in status.** The last apply didn't finish, or CoreDNS didn't start blocking with the new list and the previous list was put back. See why with `grep unifi-blocklist /var/log/messages`. The next scheduled update tries again.
 
 ## How it works
 
@@ -196,14 +198,17 @@ Facts this project relies on (verified on the UCG Ultra):
 - `domainlist_0.list` (block) and `domainlist_1.list` (allow) are plain text, one domain per line. An entry also covers its subdomains: `example.com` blocks `www.example.com`.
 - The allow list is checked first, so a domain that is on both lists still resolves.
 - CoreDNS reads these files only at start-up. UniFi's supervisor (`ubios-udapi-server`) restarts CoreDNS about 1 second after it stops, so restarting it is how a new list is loaded.
+- There is no way to load a new list without a pause. CoreDNS answers nothing while it reads the list (about 10.5 seconds for 900,000 domains on a UCG Ultra). Its `SIGUSR1` reload also starts a new process with the same pause, and the command socket (`/run/utm/coredns_command.sock`, gRPC) has no command for loading lists.
 - Blocks from this list return `203.0.113.250` / `2001:db8:1000::fa` and are logged with `"category":"INCLUSION"` in `/var/log/ulog/content_filtering.log`, which the UniFi UI reads.
 
 What the script does (`/data/unifi-blocklist/blocklist.sh`):
 
 1. **update** (timer, every 12 hours): downloads the lists for the enabled categories, converts them to plain domains and merges them.
    - Each list is cached. If a download fails, or returns less than half its previous size, the cached copy is used instead.
-   - The merged list must fall between `MIN_ENTRIES` and `MAX_ENTRIES` domains, otherwise it isn't applied.
+   - The merged list must fall between `MIN_ENTRIES` and `MAX_ENTRIES` domains, otherwise it isn't applied. The lower limit only applies when downloaded lists are selected, so a few custom domains on their own are fine.
+   - With nothing selected at all, only UniFi's own block list entries stay active.
 2. **apply**: writes UniFi's own block list entries, then a marker line, then the downloaded list into `domainlist_0.list`, and restarts CoreDNS.
+   - It then checks that CoreDNS blocks the marker domain, and still does 5 seconds later. If not, it puts the previous file back and restarts CoreDNS again.
 3. **watch** (service): checks every 15 seconds that the marker is still present. If UniFi has rebuilt the file, it re-applies the list.
 
 The background services are systemd units copied into `/etc/systemd/system`. The configuration and lists live in `/data/unifi-blocklist`.
@@ -223,16 +228,14 @@ The background services are systemd units copied into `/etc/systemd/system`. The
 
 ### Known limitations
 
-- Loading a new list restarts the filter, which pauses DNS for 1–5 seconds, depending on list size. This happens only when the list content changes (at most twice a day) or after UniFi settings are saved.
+- Loading a new list restarts the filter. DNS pauses for as long as loading takes: about 10 seconds for 900,000 domains, less for smaller lists. Devices on filtered networks get no DNS answers during the pause. This happens only when the list content changes (at most twice a day) or after UniFi settings are saved.
 - The UniFi UI counts these blocks as content-filter blocks, not as "Ad Block".
 - UniFi's own cloud lookup still runs for domains not on the list. It can't be turned off without also turning off the redirect this project depends on.
 - Not yet tested: behaviour across a firmware update, lists above 1 million domains, and models other than the UCG Ultra.
 
 ## Roadmap
 
-- Reload lists without restarting CoreDNS (the engine has a reload command whose input format isn't known yet)
 - Free sources for the categories still marked n/a (Spam, Parked Domains, Alcohol, Tobacco, …)
-- Optional LAN-only web page for choosing categories
 
 Contributions and test reports from other models are welcome.
 

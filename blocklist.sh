@@ -15,12 +15,14 @@ CONF_FILE="${BASE_DIR}/blocklist.conf"
 CATALOG="${BASE_DIR}/categories.list"         # category -> list mapping (shipped)
 ENABLED_FILE="${BASE_DIR}/categories.enabled" # selected category keys (yours)
 DEFAULT_CATEGORIES="ADS_PRO BOTNETS MALWARE PHISHING"
+EXCLUSIVE_GROUP="Ad Block (HaGeZi)"  # its levels include each other, so only one can be on
 
 # Defaults (override in blocklist.conf)
 LIST_URLS=()               # extra list URLs on top of the selected categories
 MIN_ENTRIES=1000           # refuse to apply a merged list smaller than this
 MAX_ENTRIES=1500000        # refuse to apply a merged list larger than this (gateway memory)
 WATCH_INTERVAL=15          # seconds between checks that our list is still in place
+RESTART_TIMEOUT=120        # seconds to wait for CoreDNS to load the list and answer again
 CUSTOM_BLOCK_FILE="${BASE_DIR}/custom-block.list"   # optional extra domains, one per line
 
 # shellcheck source=/dev/null
@@ -29,11 +31,13 @@ CUSTOM_BLOCK_FILE="${BASE_DIR}/custom-block.list"   # optional extra domains, on
 UTM_DIR="/run/utm"
 TARGET="${UTM_DIR}/domain_list/domainlist_0.list"   # "include" = block list
 COREDNS_PIDFILE="${UTM_DIR}/coredns.pid"
+COREDNS_CONF="${UTM_DIR}/coredns_config.conf"
 STATE_DIR="${BASE_DIR}/state"
 CACHE_DIR="${STATE_DIR}/sources"       # last good normalised copy of each source
 MERGED="${STATE_DIR}/merged.list"      # last good merged list
 UI_LIST="${STATE_DIR}/ui-block.list"   # domains UniFi itself put in the block list
-APPLIED="${STATE_DIR}/applied.sha256"  # checksum of the list CoreDNS was last restarted with
+APPLIED="${STATE_DIR}/applied.sha256"  # checksum of the list CoreDNS was last verified with
+PREVIOUS="${STATE_DIR}/target.prev"    # block file as it was before the last apply (rollback)
 LOCK="/run/unifi-blocklist.lock"
 SYSTEMD_DIR="/etc/systemd/system"
 # Marks the boundary between UniFi's own entries and ours. ".invalid" is a
@@ -89,75 +93,126 @@ fetch_source() {
   [ -f "$CACHE_DIR/$id" ]
 }
 
-coredns_pid() { cat "$COREDNS_PIDFILE" 2>/dev/null; }
+# CoreDNS writes its pidfile only after it has loaded the lists, so look the
+# process up by name while it is still loading.
+coredns_pid() { cat "$COREDNS_PIDFILE" 2>/dev/null || pidof -s coredns; }
+
+# CoreDNS only sends a query through the block list when it comes from a
+# filtered LAN range, so health checks use the gateway's address in that range.
+filter_source_ip() {
+  awk '$1=="rule" && /hostSet/ {for (i = 1; i < NF; i++) if ($i=="sourceCidrs") {split($(i+1), a, ","); sub(/\/.*/, "", a[1]); print a[1]; exit}}' "$COREDNS_CONF" 2>/dev/null
+}
+block_address() { awk '$1=="block_address_v4" {print $2; exit}' "$COREDNS_CONF" 2>/dev/null; }
+
+# Ask the filtering CoreDNS for the sentinel, which is always in our block file.
+filter_query() {
+  dig +short +time=2 +tries=1 -b "$1" @127.0.0.1 -p 1053 "$SENTINEL" A 2>/dev/null
+}
 
 # CoreDNS only reads the list files at start-up. ubios-udapi-server supervises
-# it and respawns it within ~1s, so a plain kill is the reload mechanism.
+# it and respawns it within ~1s, so a plain kill is the reload mechanism (its
+# SIGUSR1 reload also starts a new process). CoreDNS answers nothing while it
+# loads the list, about 10s for 900k domains.
+# With "verify", success means CoreDNS blocks the sentinel and still does 5s later.
+# Returns 0 on success, 1 on failure, 2 if CoreDNS isn't running.
 restart_coredns() {
-  local old new i
+  local verify="${1:-}" old new t src="" want=""
   old="$(coredns_pid)"
-  [ -n "$old" ] && kill -0 "$old" 2>/dev/null || { log "CoreDNS not running, nothing to restart"; return 0; }
+  [ -n "$old" ] && kill -0 "$old" 2>/dev/null || { log "CoreDNS not running, it will load the list when it starts"; return 2; }
+  if [ "$verify" = verify ]; then
+    src="$(filter_source_ip)"; want="$(block_address)"
+    # Only rely on the query if it works against the running CoreDNS.
+    if [ -z "$src" ] || [ -z "$want" ] || ! command -v dig >/dev/null || ! ip -o addr show | grep -qF " inet $src/" || ! filter_query "$src" >/dev/null; then
+      log "WARNING: can't query the filter directly, only checking that CoreDNS restarts"
+      src=""
+    fi
+  fi
   kill "$old"
-  for i in $(seq 1 30); do
+  for ((t = 0; t < RESTART_TIMEOUT; t++)); do
     sleep 1
     new="$(coredns_pid)"
-    if [ -n "$new" ] && [ "$new" != "$old" ] && kill -0 "$new" 2>/dev/null; then
-      log "CoreDNS restarted (pid $old -> $new)"
+    [ -n "$new" ] && [ "$new" != "$old" ] && kill -0 "$new" 2>/dev/null || continue
+    [ -z "$src" ] || [ "$(filter_query "$src")" = "$want" ] || continue
+    [ "$verify" = verify ] || { log "CoreDNS restarted (pid $old -> $new)"; return 0; }
+    sleep 5; t=$((t + 5))
+    if [ "$(coredns_pid)" = "$new" ] && kill -0 "$new" 2>/dev/null && { [ -z "$src" ] || [ "$(filter_query "$src")" = "$want" ]; }; then
+      log "CoreDNS restarted (pid $old -> $new)${src:+ and is blocking from the new list}"
       return 0
     fi
   done
-  log "WARNING: CoreDNS did not come back within 30s after restart"
+  log "ERROR: CoreDNS did not come back${src:+ with the new list} within ${RESTART_TIMEOUT}s"
   return 1
+}
+
+# Run a function while holding the lock that serialises changes to the block file.
+with_lock() {
+  (
+    flock -w 600 9 || { log "ERROR: could not get lock $LOCK"; exit 1; }
+    "$@"
+  ) 9>"$LOCK"
 }
 
 # Download the sources of the enabled categories (+ LIST_URLS), merge, apply.
 cmd_update() {
-  local tmp id url n i=0 files=()
+  local tmp id url lists=0 files=()
   mkdir -p "$CACHE_DIR"
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' RETURN
   for id in $(enabled_sources); do
     url="$(source_url "$id")"
     [ -n "$url" ] || { log "WARNING: unknown source $id in catalog"; continue; }
+    lists=$((lists + 1))
     if fetch_source "$id" "$url" "$tmp"; then files+=("$CACHE_DIR/$id"); else log "ERROR: no copy of $id available, skipping it"; fi
   done
   for url in "${LIST_URLS[@]}"; do
-    i=$((i + 1))
-    if fetch_source "extra$i" "$url" "$tmp"; then files+=("$CACHE_DIR/extra$i"); fi
+    # Cache by URL, so reordering or replacing URLs never mixes up their copies.
+    id="extra-$(printf '%s' "$url" | sha256sum | cut -c1-12)"
+    lists=$((lists + 1))
+    if fetch_source "$id" "$url" "$tmp"; then files+=("$CACHE_DIR/$id"); else log "ERROR: no copy of $url available, skipping it"; fi
   done
+  if [ "$lists" -gt 0 ] && [ ${#files[@]} -eq 0 ]; then
+    log "ERROR: none of the selected lists could be downloaded, keeping previous list"
+    return 1
+  fi
   [ -f "$CUSTOM_BLOCK_FILE" ] && normalise < "$CUSTOM_BLOCK_FILE" > "$tmp/custom" && files+=("$tmp/custom")
-  [ ${#files[@]} -gt 0 ] || { log "ERROR: nothing selected, enable categories with: $0 menu"; return 1; }
-  sort -u "${files[@]}" > "$tmp/merged"
+  with_lock merge_and_apply
+}
+
+# Second half of cmd_update, under the lock: uses its tmp, lists and files.
+merge_and_apply() {
+  local n
+  if [ ${#files[@]} -gt 0 ]; then sort -u "${files[@]}" > "$tmp/merged"; else : > "$tmp/merged"; fi
   n=$(wc -l < "$tmp/merged")
-  if [ "$n" -lt "$MIN_ENTRIES" ] || [ "$n" -gt "$MAX_ENTRIES" ]; then
+  # The lower bound guards against truncated downloads; custom domains alone can be any size.
+  if { [ "$lists" -gt 0 ] && [ "$n" -lt "$MIN_ENTRIES" ]; } || [ "$n" -gt "$MAX_ENTRIES" ]; then
     log "ERROR: merged list has $n domains (allowed $MIN_ENTRIES-$MAX_ENTRIES), keeping previous list"
     return 1
   fi
+  [ "$n" -eq 0 ] && log "Nothing selected: only UniFi's own block list entries will be active"
   if [ -f "$MERGED" ] && cmp -s "$tmp/merged" "$MERGED"; then
     if [ "$(sha256sum < "$MERGED")" = "$(cat "$APPLIED" 2>/dev/null)" ]; then
       log "List unchanged ($n domains)"
       return 0
     fi
   else
-    mv "$tmp/merged" "$MERGED"
+    mv "$tmp/merged" "$MERGED" || { log "ERROR: could not write $MERGED"; return 1; }
     log "Downloaded new list: $n domains"
   fi
-  cmd_apply force
+  apply_now force
 }
 
 # Write UniFi's own entries + sentinel + our list into the CoreDNS block file.
-# Runs in a subshell holding the lock, so the lock is always released on return.
-cmd_apply() {
+cmd_apply() { with_lock apply_now "${1:-}"; }
+
+# Callers hold the lock.
+apply_now() {
   [ -f "$MERGED" ] || { log "No downloaded list yet, run: $0 update"; return 1; }
   [ -d "$(dirname "$TARGET")" ] || { log "$(dirname "$TARGET") missing: content filtering is off for all networks, skipping"; return 0; }
-  (
-    flock -w 600 9 || { log "ERROR: could not get lock $LOCK"; exit 1; }
-    apply_locked "${1:-}"
-  ) 9>"$LOCK"
+  apply_locked "${1:-}"
 }
 
 apply_locked() {
-  local force="$1" tmp
+  local force="$1" tmp err
   if [ -f "$TARGET" ] && grep -qxF "$SENTINEL" "$TARGET"; then
     [ "$force" = "force" ] || return 0   # already applied
     # Everything above the sentinel came from UniFi.
@@ -167,37 +222,79 @@ apply_locked() {
     cp "$TARGET" "$UI_LIST" 2>/dev/null || : > "$UI_LIST"
   fi
 
-  tmp="$(mktemp "$(dirname "$TARGET")/.domainlist_0.XXXXXX")"
-  { cat "$UI_LIST"; echo "$SENTINEL"; cat "$MERGED"; } > "$tmp"
-  chmod 644 "$tmp"
-  mv "$tmp" "$TARGET"
+  # Keep the file CoreDNS is running with, to roll back to.
+  # Write failures return 3: CoreDNS wasn't touched, so retrying soon is harmless.
+  if [ -f "$TARGET" ]; then
+    err="$(cp "$TARGET" "$PREVIOUS" 2>&1)" || { log "ERROR: could not back up $TARGET (${err:-unknown error})"; return 3; }
+  else
+    rm -f "$PREVIOUS"
+  fi
+  tmp="$(mktemp "$(dirname "$TARGET")/.domainlist_0.XXXXXX" 2>&1)" || { log "ERROR: could not create a file in $(dirname "$TARGET") ($tmp)"; return 3; }
+  if ! err="$( { { cat "$UI_LIST" && echo "$SENTINEL" && cat "$MERGED"; } > "$tmp" && chmod 644 "$tmp" && mv "$tmp" "$TARGET"; } 2>&1 )"; then
+    rm -f "$tmp"; log "ERROR: could not write $TARGET (${err:-unknown error}), previous list left in place"; return 3
+  fi
   log "Applied $(wc -l < "$MERGED") domains (+$(grep -c . "$UI_LIST") from UniFi UI) to $TARGET"
-  restart_coredns && sha256sum < "$MERGED" > "$APPLIED"
+  restart_coredns verify
+  case $? in
+    0) sha256sum < "$MERGED" > "$APPLIED" ;;
+    2) return 0 ;;
+    *) rollback; return 1 ;;
+  esac
+}
+
+# Put back the block file CoreDNS was running with before the failed apply.
+rollback() {
+  local tmp
+  log "Restoring the previous block list"
+  tmp="$(mktemp "$(dirname "$TARGET")/.domainlist_0.XXXXXX")" || return 1
+  if [ -f "$PREVIOUS" ]; then cp "$PREVIOUS" "$tmp"; else cp "$UI_LIST" "$tmp"; fi
+  chmod 644 "$tmp" && mv "$tmp" "$TARGET" || { rm -f "$tmp"; log "ERROR: could not restore $TARGET"; return 1; }
+  restart_coredns
 }
 
 # Re-apply whenever UniFi regenerates the list (reboot, UI settings change).
+# After a failed restart, wait 1, 2, 4 ... 60 minutes before trying again, since
+# every attempt pauses DNS. A failed write is retried at the normal interval.
 cmd_watch() {
+  local fails=0 wait rc
   log "Watching $TARGET every ${WATCH_INTERVAL}s"
   while :; do
+    # Pick up changes to blocklist.conf without restarting the watcher.
+    # shellcheck source=/dev/null
+    [ -f "$CONF_FILE" ] && . "$CONF_FILE"
     if [ -f "$TARGET" ] && ! grep -qxF "$SENTINEL" "$TARGET"; then
       log "Block list was regenerated by UniFi, re-applying"
-      cmd_apply
+      cmd_apply; rc=$?
+      if [ "$rc" -eq 0 ]; then
+        fails=0
+      elif [ "$rc" -eq 3 ]; then
+        log "Re-applying failed, trying again in ${WATCH_INTERVAL}s"
+      else
+        [ "$fails" -lt 6 ] && fails=$((fails + 1))
+        wait=$((60 << (fails - 1))); [ "$wait" -gt 3600 ] && wait=3600
+        log "Re-applying failed, trying again in ${wait}s"
+        sleep "$wait"
+        continue
+      fi
     fi
     sleep "$WATCH_INTERVAL"
   done
 }
 
 cmd_status() {
-  local pid
+  local pid rss
   pid="$(coredns_pid)"
+  rss="$(ps -o rss= -p "${pid:-0}" 2>/dev/null | tr -d ' ')"
   echo "Categories      : $(enabled_keys | paste -sd' ')"
   echo "Downloaded list : $( [ -f "$MERGED" ] && echo "$(wc -l < "$MERGED") domains, $(date -r "$MERGED" '+%F %T')" || echo none)"
-  if [ -f "$TARGET" ] && grep -qxF "$SENTINEL" "$TARGET"; then
+  if ! [ -f "$TARGET" ] || ! grep -qxF "$SENTINEL" "$TARGET"; then
+    echo "Applied         : NO"
+  elif [ -f "$MERGED" ] && [ "$(sha256sum < "$MERGED")" = "$(cat "$APPLIED" 2>/dev/null)" ]; then
     echo "Applied         : yes ($(wc -l < "$TARGET") lines in $TARGET)"
   else
-    echo "Applied         : NO"
+    echo "Applied         : pending (last apply failed or is still running, see: grep unifi-blocklist /var/log/messages)"
   fi
-  echo "CoreDNS         : ${pid:-not running}$( [ -n "$pid" ] && echo ", $(($(ps -o rss= -p "$pid") / 1024)) MB RSS")"
+  echo "CoreDNS         : ${pid:-not running}${rss:+, $((rss / 1024)) MB RSS}"
   systemctl --no-pager list-timers unifi-blocklist-update.timer 2>/dev/null | sed -n 2p
   systemctl is-active --quiet unifi-blocklist-watch.service && echo "Watcher         : running" || echo "Watcher         : stopped"
 }
@@ -247,7 +344,7 @@ cmd_check() {
   else
     warn "no networks in the filter (ipset dnsfilter is empty)" "Turn on Ad Block for the networks you want covered, otherwise nothing gets filtered."
   fi
-  for t in curl flock sha256sum systemctl ipset; do
+  for t in curl flock sha256sum systemctl ipset dig; do
     command -v "$t" >/dev/null || fail "missing tool: $t" "Unexpected on UniFi OS; please open an issue with your model and firmware."
   done
   touch /data/.unifi-blocklist-test 2>/dev/null && rm -f /data/.unifi-blocklist-test && pass "/data is writable (survives reboots and firmware updates)" \
@@ -264,16 +361,20 @@ cmd_check() {
 cmd_uninstall() {
   local u
   systemctl disable --now unifi-blocklist-watch.service unifi-blocklist-update.timer 2>/dev/null
+  systemctl stop unifi-blocklist-update.service 2>/dev/null
   for u in unifi-blocklist-watch.service unifi-blocklist-update.service unifi-blocklist-update.timer; do
     rm -f "$SYSTEMD_DIR/$u"
   done
   systemctl daemon-reload
-  # Put back only what UniFi itself had in the block list.
-  if [ -f "$TARGET" ] && grep -qxF "$SENTINEL" "$TARGET"; then
-    sed "/^${SENTINEL//./\\.}\$/,\$d" "$TARGET" > "$TARGET.tmp" && mv "$TARGET.tmp" "$TARGET"
-    restart_coredns
-  fi
+  with_lock remove_our_entries
   log "Uninstalled. Files in $BASE_DIR were left in place."
+}
+
+# Put back only what UniFi itself had in the block list.
+remove_our_entries() {
+  [ -f "$TARGET" ] && grep -qxF "$SENTINEL" "$TARGET" || return 0
+  sed "/^${SENTINEL//./\\.}\$/,\$d" "$TARGET" > "$TARGET.tmp" && mv "$TARGET.tmp" "$TARGET"
+  restart_coredns
 }
 
 # --- category selection -----------------------------------------------------
@@ -288,14 +389,20 @@ cmd_categories() {
   echo; echo "n/a = no free list available for this category yet"
 }
 
+group_keys() { awk -F'|' -v g="$1" '$1=="C" && $2==g {print $3}' "$CATALOG"; }
+
 cmd_toggle() {
-  local action="$1" key keys
+  local action="$1" key keys other
   shift
   keys="$(enabled_keys)"
   for key in "$@"; do
     key="${key^^}"
     grep -q "^C|[^|]*|${key}|" "$CATALOG" || { echo "Unknown category: $key"; return 1; }
     grep -q "^C|[^|]*|${key}|[^|]*|-$" "$CATALOG" && { echo "$key has no free list (n/a)"; return 1; }
+    if [ "$action" = enable ] && group_keys "$EXCLUSIVE_GROUP" | grep -qxF "$key"; then
+      other="$(group_keys "$EXCLUSIVE_GROUP" | grep -vxF "$key" | grep -xF -f - <(printf '%s\n' "$keys") | head -1)"
+      [ -z "$other" ] || { echo "Only one $EXCLUSIVE_GROUP level can be on. Disable $other first."; return 1; }
+    fi
     if [ "$action" = enable ]; then keys="$keys"$'\n'"$key"; else keys="$(grep -vxF "$key" <<< "$keys")"; fi
   done
   # shellcheck disable=SC2086
@@ -319,7 +426,7 @@ run_update_detached() {
 # Text UI (dialog): one checklist per UniFi category group.
 cmd_menu() {
   command -v dialog >/dev/null || { echo "dialog not installed, use: $0 categories / enable / disable"; return 1; }
-  local groups=() sel choice g i items na picked current dirty=0 keys
+  local groups=() choice g i items na picked current dirty=0 keys kind hint
   mapfile -t groups < <(awk -F'|' '$1=="C" && !seen[$2]++ {print $2}' "$CATALOG")
   keys="$(enabled_keys)"
 
@@ -361,8 +468,16 @@ cmd_menu() {
           grep -qxF "$key" <<< "$keys" && current=on || current=off
           items+=("$key" "$label" "$current")
         done < <(awk -F'|' -v g="$g" '$1=="C" && $2==g' "$CATALOG")
-        picked=$(dialog --title "$g" --no-tags --separate-output --checklist \
-          "Space = toggle, Enter = OK.${na:+\n\nNo free list (not shown): ${na%, }}" 24 76 14 "${items[@]}" 3>&1 1>&2 2>&3) || continue
+        kind=--checklist; hint="Space = toggle, Enter = OK."
+        if [ "$g" = "$EXCLUSIVE_GROUP" ]; then
+          # One level at a time, or off.
+          kind=--radiolist; hint="Space = select one level, Enter = OK."
+          printf '%s\n' "${items[@]}" | grep -qx on && current=off || current=on
+          items=(OFF "Off" "$current" "${items[@]}")
+        fi
+        picked=$(dialog --title "$g" --no-tags --separate-output "$kind" \
+          "${hint}${na:+\n\nNo free list (not shown): ${na%, }}" 24 76 14 "${items[@]}" 3>&1 1>&2 2>&3) || continue
+        [ "$picked" = OFF ] && picked=""
         # Replace this group's keys with the picked ones.
         for ((i = 0; i < ${#items[@]}; i += 3)); do keys="$(grep -vxF "${items[$i]}" <<< "$keys")"; done
         keys="$(printf '%s\n%s\n' "$keys" "$picked" | grep -v '^$' | sort -u)"
