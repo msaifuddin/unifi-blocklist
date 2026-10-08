@@ -6,11 +6,15 @@
 #
 # Re-running it updates the scripts and keeps your settings
 # (blocklist.conf, categories.enabled, custom-block.list, state/).
+#
+# Installs the newest release by default. TAG=v1.1.0 installs a specific
+# release, BRANCH=main the current development version.
 
 set -euo pipefail
 
 REPO="msaifuddin/unifi-blocklist"
-BRANCH="${BRANCH:-main}"
+TAG="${TAG:-}"
+BRANCH="${BRANCH:-}"
 DEST="/data/unifi-blocklist"
 FILES="blocklist.sh install.sh categories.list blocklist.conf.example README.md LICENSE systemd"
 
@@ -20,8 +24,19 @@ FILES="blocklist.sh install.sh categories.list blocklist.conf.example README.md 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-echo "Downloading ${REPO} (${BRANCH})..."
-curl -fsSL "https://github.com/${REPO}/archive/refs/heads/${BRANCH}.tar.gz" | tar -xz -C "$tmp"
+if [ -z "$TAG" ] && [ -z "$BRANCH" ]; then
+  # The releases/latest page redirects to .../releases/tag/<newest tag>.
+  TAG="$(curl -fsS --max-time 20 -o /dev/null -w '%{redirect_url}' "https://github.com/${REPO}/releases/latest" || true)"
+  TAG="${TAG##*/releases/tag/}"
+  [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Could not find the latest release, installing main instead."; TAG=""; BRANCH=main; }
+fi
+if [ -n "$TAG" ]; then
+  echo "Downloading ${REPO} release ${TAG}..."
+  curl -fsSL "https://github.com/${REPO}/archive/refs/tags/${TAG}.tar.gz" | tar -xz -C "$tmp"
+else
+  echo "Downloading ${REPO} (${BRANCH})..."
+  curl -fsSL "https://github.com/${REPO}/archive/refs/heads/${BRANCH}.tar.gz" | tar -xz -C "$tmp"
+fi
 src="$(find "$tmp" -mindepth 1 -maxdepth 1 -type d | head -1)"
 
 mkdir -p "$DEST"
@@ -35,4 +50,4 @@ echo
 
 "$DEST/blocklist.sh" install
 echo
-echo "Done. Pick categories with:  $DEST/blocklist.sh menu"
+echo "Done ($("$DEST/blocklist.sh" version)). Pick categories with:  $DEST/blocklist.sh menu"

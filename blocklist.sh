@@ -6,9 +6,12 @@
 # Blocks are performed and logged by UniFi itself, so they still show up in the
 # UniFi UI, and the UI allow list keeps working (it is evaluated first).
 #
-# Usage: blocklist.sh {menu|categories|enable|disable|update|apply|status|check|install|uninstall|watch}
+# Usage: blocklist.sh {menu|categories|enable|disable|update|apply|status|check|install|uninstall|upgrade|version|watch}
 
 set -uo pipefail
+
+VERSION="1.1.0"
+REPO="msaifuddin/unifi-blocklist"
 
 BASE_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 CONF_FILE="${BASE_DIR}/blocklist.conf"
@@ -23,6 +26,7 @@ MIN_ENTRIES=1000           # refuse to apply a merged list smaller than this
 MAX_ENTRIES=1500000        # refuse to apply a merged list larger than this (gateway memory)
 WATCH_INTERVAL=15          # seconds between checks that our list is still in place
 RESTART_TIMEOUT=120        # seconds to wait for CoreDNS to load the list and answer again
+UPDATE_CHECK=1             # 1 = look for a newer release during the scheduled update (notify only)
 CUSTOM_BLOCK_FILE="${BASE_DIR}/custom-block.list"   # optional extra domains, one per line
 
 # shellcheck source=/dev/null
@@ -38,6 +42,7 @@ MERGED="${STATE_DIR}/merged.list"      # last good merged list
 UI_LIST="${STATE_DIR}/ui-block.list"   # domains UniFi itself put in the block list
 APPLIED="${STATE_DIR}/applied.sha256"  # checksum of the list CoreDNS was last verified with
 PREVIOUS="${STATE_DIR}/target.prev"    # block file as it was before the last apply (rollback)
+LATEST="${STATE_DIR}/latest-version"   # newest release seen on GitHub
 LOCK="/run/unifi-blocklist.lock"
 SYSTEMD_DIR="/etc/systemd/system"
 # Marks the boundary between UniFi's own entries and ours. ".invalid" is a
@@ -45,6 +50,50 @@ SYSTEMD_DIR="/etc/systemd/system"
 SENTINEL="unifi-blocklist-sentinel.invalid"
 
 log() { logger -t unifi-blocklist -- "$*"; echo "$(date '+%F %T') $*"; }
+
+# --- releases ---------------------------------------------------------------
+
+# Tag of the newest GitHub release (e.g. v1.1.0), read from the redirect of the
+# releases/latest page so no API token or JSON parsing is needed.
+latest_release() {
+  local url
+  url="$(curl -fsS --max-time 20 -o /dev/null -w '%{redirect_url}' "https://github.com/${REPO}/releases/latest")" || return 1
+  url="${url##*/releases/tag/}"
+  [[ "$url" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
+  echo "$url"
+}
+
+# True if version $1 is newer than $2.
+version_gt() { [ "$1" != "$2" ] && [ "$(printf '%s\n' "$1" "$2" | sort -V | tail -1)" = "$1" ]; }
+
+# Notify only: never installs anything and never affects the list update.
+check_for_update() {
+  local tag
+  [ "$UPDATE_CHECK" = 1 ] || return 0
+  tag="$(latest_release)" || return 0
+  echo "${tag#v}" > "$LATEST"
+  version_gt "${tag#v}" "$VERSION" && log "Update available: ${tag#v} (installed: $VERSION), run: $0 upgrade"
+  return 0
+}
+
+# One-line notice if a newer release was seen, empty otherwise.
+update_notice() {
+  local latest
+  latest="$(cat "$LATEST" 2>/dev/null)"
+  [ -n "$latest" ] && version_gt "$latest" "$VERSION" && echo "update available: $latest, run: blocklist.sh upgrade"
+}
+
+# Reinstall from the newest release; the installer keeps settings and state.
+cmd_upgrade() {
+  local tag
+  tag="$(latest_release)" || { echo "Could not find the latest release on GitHub."; return 1; }
+  echo "Installed: $VERSION, latest release: ${tag#v}"
+  if ! version_gt "${tag#v}" "$VERSION" && [ "${1:-}" != "--force" ]; then
+    echo "Already up to date (use 'upgrade --force' to reinstall)."
+    return 0
+  fi
+  curl -fsSL "https://raw.githubusercontent.com/${REPO}/${tag}/install.sh" | TAG="$tag" bash
+}
 
 # Strip comments and convert hosts / adblock / plain formats into bare domains.
 normalise() {
@@ -156,6 +205,7 @@ with_lock() {
 cmd_update() {
   local tmp id url lists=0 files=()
   mkdir -p "$CACHE_DIR"
+  check_for_update
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' RETURN
   for id in $(enabled_sources); do
@@ -282,9 +332,11 @@ cmd_watch() {
 }
 
 cmd_status() {
-  local pid rss
+  local pid rss notice
   pid="$(coredns_pid)"
   rss="$(ps -o rss= -p "${pid:-0}" 2>/dev/null | tr -d ' ')"
+  notice="$(update_notice)"
+  echo "Version         : ${VERSION}${notice:+ ($notice)}"
   echo "Categories      : $(enabled_keys | paste -sd' ')"
   echo "Downloaded list : $( [ -f "$MERGED" ] && echo "$(wc -l < "$MERGED") domains, $(date -r "$MERGED" '+%F %T')" || echo none)"
   if ! [ -f "$TARGET" ] || ! grep -qxF "$SENTINEL" "$TARGET"; then
@@ -426,7 +478,7 @@ run_update_detached() {
 # Text UI (dialog): one checklist per UniFi category group.
 cmd_menu() {
   command -v dialog >/dev/null || { echo "dialog not installed, use: $0 categories / enable / disable"; return 1; }
-  local groups=() choice g i items na picked current dirty=0 keys kind hint
+  local groups=() choice g i items na picked current dirty=0 keys kind hint notice
   mapfile -t groups < <(awk -F'|' '$1=="C" && !seen[$2]++ {print $2}' "$CATALOG")
   keys="$(enabled_keys)"
 
@@ -441,8 +493,9 @@ cmd_menu() {
     done
     menu+=("" "" "A" "Apply now (download lists + reload)" "S" "Status" "Q" "Quit$( [ $dirty = 1 ] && echo ' (unsaved changes)')")
 
-    choice=$(dialog --clear --title "unifi-blocklist" --cancel-label "Quit" \
-      --menu "UniFi content filter categories backed by free lists.\nChanges are saved when you leave a group; Apply downloads and reloads." \
+    notice="$(update_notice)"
+    choice=$(dialog --clear --title "unifi-blocklist $VERSION" --cancel-label "Quit" \
+      --menu "UniFi content filter categories backed by free lists.\nChanges are saved when you leave a group; Apply downloads and reloads.${notice:+\n\nNote: ${notice}.}" \
       25 72 17 "${menu[@]}" 3>&1 1>&2 2>&3) || choice=Q
 
     case "$choice" in
@@ -498,5 +551,7 @@ case "${1:-}" in
   watch)      cmd_watch ;;
   status)     cmd_status ;;
   check)      cmd_check ;;
-  *) echo "Usage: $0 {menu|categories|enable KEY..|disable KEY..|update|apply|status|check|install|uninstall|watch}"; exit 1 ;;
+  upgrade)    shift; cmd_upgrade "$@" ;;
+  version)    echo "$VERSION" ;;
+  *) echo "Usage: $0 {menu|categories|enable KEY..|disable KEY..|update|apply|status|check|install|uninstall|upgrade [--force]|version|watch}"; exit 1 ;;
 esac

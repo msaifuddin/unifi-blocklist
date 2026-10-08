@@ -81,7 +81,7 @@ Every line should say `[ OK ]` and the result should be `compatible`. A `[FAIL]`
 curl -fsSL https://raw.githubusercontent.com/msaifuddin/unifi-blocklist/main/install.sh | bash
 ```
 
-This installs into `/data/unifi-blocklist` (a location that survives reboots and firmware updates), runs the compatibility check, downloads the default lists and starts the background services. The default categories are **Ad Block Pro, Botnets, Malware and Phishing**, about 650,000 domains.
+This installs the newest release into `/data/unifi-blocklist` (a location that survives reboots and firmware updates), runs the compatibility check, downloads the default lists and starts the background services. The default categories are **Ad Block Pro, Botnets, Malware and Phishing**, about 650,000 domains.
 
 ### 6. Check that it works
 
@@ -149,7 +149,8 @@ The full mapping of categories to lists is in [`categories.list`](categories.lis
 | See what's being blocked | UniFi UI, or `tail -f /var/log/ulog/content_filtering.log` on the gateway |
 | Check that everything is running | `/data/unifi-blocklist/blocklist.sh status` |
 | Update the lists now | `systemctl start unifi-blocklist-update` (otherwise every 12 hours) |
-| Update this project | Run the install command from step 5 again. Your settings and categories are kept. |
+| See which version is installed | `/data/unifi-blocklist/blocklist.sh version` (also shown by `status` and the menu) |
+| Update this project | `/data/unifi-blocklist/blocklist.sh upgrade`. Your settings and categories are kept. `status` and the menu show when a newer release is available. Installs from before version 1.1.0 don't have this command: run the install command from step 5 again instead. |
 | Add your own list URLs | Edit `LIST_URLS` in `/data/unifi-blocklist/blocklist.conf` |
 
 Blocked domains appear in the UniFi UI as content-filter blocks.
@@ -207,6 +208,7 @@ What the script does (`/data/unifi-blocklist/blocklist.sh`):
    - Each list is cached. If a download fails, or returns less than half its previous size, the cached copy is used instead.
    - The merged list must fall between `MIN_ENTRIES` and `MAX_ENTRIES` domains, otherwise it isn't applied. The lower limit only applies when downloaded lists are selected, so a few custom domains on their own are fine.
    - With nothing selected at all, only UniFi's own block list entries stay active.
+   - It also checks GitHub for a newer release of this project. This only shows a notice; nothing is installed until you run `upgrade`. Set `UPDATE_CHECK=0` in `blocklist.conf` to turn the check off.
 2. **apply**: writes UniFi's own block list entries, then a marker line, then the downloaded list into `domainlist_0.list`, and restarts CoreDNS.
    - It then checks that CoreDNS blocks the marker domain, and still does 5 seconds later. If not, it puts the previous file back and restarts CoreDNS again.
 3. **watch** (service): checks every 15 seconds that the marker is still present. If UniFi has rebuilt the file, it re-applies the list.

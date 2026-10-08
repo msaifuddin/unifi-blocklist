@@ -23,5 +23,9 @@ WATCH_INTERVAL=15
 # previous list is put back.
 RESTART_TIMEOUT=120
 
+# 1 = check GitHub for a newer release during the scheduled update and show a
+# notice in status and the menu. Nothing is installed automatically. 0 = off.
+UPDATE_CHECK=1
+
 # Extra domains to block, one per line (optional).
 CUSTOM_BLOCK_FILE="/data/unifi-blocklist/custom-block.list"
