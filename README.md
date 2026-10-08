@@ -281,9 +281,7 @@ The background services are systemd units copied into `/etc/systemd/system`. The
 - UniFi's own cloud lookup still runs for domains not on the list. It can't be turned off without also turning off the redirect this project depends on.
 - Not yet tested: behaviour across a firmware update, lists above 1 million domains, and models other than the UCG Ultra.
 
-## Roadmap
-
-- Free sources for the categories still marked n/a (Spam, Parked Domains, Alcohol, Tobacco, …)
+## Contributing
 
 Contributions and test reports from other models are welcome.
 
