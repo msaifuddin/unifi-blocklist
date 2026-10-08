@@ -91,6 +91,19 @@ On the gateway:
 /data/unifi-blocklist/blocklist.sh status
 ```
 
+It should look like this, with `Applied : yes` and the watcher running:
+
+```
+Version     : 1.1.2
+Categories  : ADS_PRO BOTNETS MALWARE PHISHING
+Domains     : 652,340 (downloaded 2026-10-08 10:54)
+Applied     : yes
+CoreDNS     : running (pid 9659, 120 MB)
+Watcher     : running
+Last update : 2026-10-08 15:32 (ok)
+Next update : 2026-10-09 03:45 (in 12h)
+```
+
 From any computer on a filtered network (works on Windows, macOS and Linux):
 
 ```sh
@@ -148,6 +161,7 @@ The full mapping of categories to lists is in [`categories.list`](categories.lis
 | Block an extra site | Add it to the **block list** in the UniFi UI, or to `/data/unifi-blocklist/custom-block.list` (one domain per line) and run `systemctl start unifi-blocklist-update`. |
 | See what's being blocked | UniFi UI, or `tail -f /var/log/ulog/content_filtering.log` on the gateway |
 | Check that everything is running | `/data/unifi-blocklist/blocklist.sh status` |
+| See all commands | `/data/unifi-blocklist/blocklist.sh help` (or run it without a command) |
 | Update the lists now | `systemctl start unifi-blocklist-update` (otherwise every 12 hours) |
 | See which version is installed | `/data/unifi-blocklist/blocklist.sh version` (also shown by `status` and the menu) |
 | Update this project | `/data/unifi-blocklist/blocklist.sh upgrade`. Your settings and categories are kept. `status` and the menu show when a newer release is available. Installs from before version 1.1.0 don't have this command: run the install command from step 5 again instead. |

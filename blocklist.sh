@@ -6,11 +6,11 @@
 # Blocks are performed and logged by UniFi itself, so they still show up in the
 # UniFi UI, and the UI allow list keeps working (it is evaluated first).
 #
-# Usage: blocklist.sh {menu|categories|enable|disable|update|apply|status|check|install|uninstall|upgrade|version|watch}
+# Usage: blocklist.sh help
 
 set -uo pipefail
 
-VERSION="1.1.1"
+VERSION="1.1.2"
 REPO="msaifuddin/unifi-blocklist"
 
 BASE_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -331,24 +331,51 @@ cmd_watch() {
   done
 }
 
+# "Fri 2026-10-09 03:53:54 AEDT 12h left ..." from list-timers -> "2026-10-09 03:53|12h".
+next_update() {
+  systemctl --no-pager --no-legend list-timers unifi-blocklist-update.timer 2>/dev/null | awk '
+    NR == 1 && $1 != "n/a" { l = ""; for (i = 5; i <= NF && $i != "left"; i++) l = l (l ? " " : "") $i; print $2 " " substr($3, 1, 5) "|" l; exit }'
+}
+
+# Last finished run of the update service (timer, menu, install or upgrade).
+last_update() {
+  local when result
+  when="$(systemctl show unifi-blocklist-update.service -p ExecMainExitTimestamp --value 2>/dev/null)"
+  result="$(systemctl show unifi-blocklist-update.service -p Result --value 2>/dev/null)"
+  [ -n "$when" ] || { echo "not since boot"; return; }
+  when="$(date -d "$when" '+%F %H:%M' 2>/dev/null || echo "$when")"
+  [ "$result" = success ] && echo "$when (ok)" || echo "$when (failed, see: grep unifi-blocklist /var/log/messages)"
+}
+
+# Print a space-separated list wrapped to fit beside the status labels.
+wrap_list() { fold -s -w 56 | sed 's/ *$//; 1!s/^/              /'; }
+
 cmd_status() {
-  local pid rss notice
+  local pid rss notice n next left
   pid="$(coredns_pid)"
   rss="$(ps -o rss= -p "${pid:-0}" 2>/dev/null | tr -d ' ')"
   notice="$(update_notice)"
-  echo "Version         : ${VERSION}${notice:+ ($notice)}"
-  echo "Categories      : $(enabled_keys | paste -sd' ')"
-  echo "Downloaded list : $( [ -f "$MERGED" ] && echo "$(wc -l < "$MERGED") domains, $(date -r "$MERGED" '+%F %T')" || echo none)"
-  if ! [ -f "$TARGET" ] || ! grep -qxF "$SENTINEL" "$TARGET"; then
-    echo "Applied         : NO"
-  elif [ -f "$MERGED" ] && [ "$(sha256sum < "$MERGED")" = "$(cat "$APPLIED" 2>/dev/null)" ]; then
-    echo "Applied         : yes ($(wc -l < "$TARGET") lines in $TARGET)"
+  echo "Version     : ${VERSION}${notice:+ ($notice)}"
+  echo "Categories  : $(enabled_keys | paste -sd' ' | wrap_list)"
+  if [ -f "$MERGED" ]; then
+    n="$(wc -l < "$MERGED" | sed ':a;s/\B[0-9]\{3\}\>/,&/;ta')"
+    echo "Domains     : $n (downloaded $(date -r "$MERGED" '+%F %H:%M'))"
   else
-    echo "Applied         : pending (last apply failed or is still running, see: grep unifi-blocklist /var/log/messages)"
+    echo "Domains     : none downloaded yet"
   fi
-  echo "CoreDNS         : ${pid:-not running}${rss:+, $((rss / 1024)) MB RSS}"
-  systemctl --no-pager list-timers unifi-blocklist-update.timer 2>/dev/null | sed -n 2p
-  systemctl is-active --quiet unifi-blocklist-watch.service && echo "Watcher         : running" || echo "Watcher         : stopped"
+  if ! [ -f "$TARGET" ] || ! grep -qxF "$SENTINEL" "$TARGET"; then
+    echo "Applied     : NO"
+  elif [ -f "$MERGED" ] && [ "$(sha256sum < "$MERGED")" = "$(cat "$APPLIED" 2>/dev/null)" ]; then
+    echo "Applied     : yes"
+  else
+    echo "Applied     : pending (last apply failed or still running)"
+    echo "              see: grep unifi-blocklist /var/log/messages"
+  fi
+  if [ -n "$pid" ]; then echo "CoreDNS     : running (pid $pid${rss:+, $((rss / 1024)) MB})"; else echo "CoreDNS     : not running"; fi
+  systemctl is-active --quiet unifi-blocklist-watch.service && echo "Watcher     : running" || echo "Watcher     : stopped"
+  echo "Last update : $(last_update)"
+  IFS='|' read -r next left <<< "$(next_update)"
+  echo "Next update : ${next:-timer not running}${left:+ (in $left)}"
 }
 
 # Units are copied (not symlinked) into /etc so systemd can read them at early
@@ -478,7 +505,7 @@ run_update_detached() {
 # Text UI (dialog): one checklist per UniFi category group.
 cmd_menu() {
   command -v dialog >/dev/null || { echo "dialog not installed, use: $0 categories / enable / disable"; return 1; }
-  local groups=() choice g i items na picked current dirty=0 keys kind hint notice
+  local groups=() choice g i items na picked current dirty=0 keys kind hint notice sel
   mapfile -t groups < <(awk -F'|' '$1=="C" && !seen[$2]++ {print $2}' "$CATALOG")
   keys="$(enabled_keys)"
 
@@ -504,7 +531,9 @@ cmd_menu() {
         save_enabled $keys; dirty=0; clear
         run_update_detached; echo; read -rp "Press Enter to return to the menu" _ ;;
       S)
-        dialog --title "Status" --msgbox "$(cmd_status 2>&1)\n\nEnabled: $(echo $keys)" 20 76 ;;
+        sel="$(cmd_status 2>&1)"
+        [ $dirty = 1 ] && sel="$sel"$'\n\n'"Unsaved     : $(paste -sd' ' <<< "$keys" | wrap_list)"
+        dialog --title "Status" --cr-wrap --no-collapse --msgbox "$sel" $(( $(wc -l <<< "$sel") + 4 )) 76 ;;
       Q)
         if [ $dirty = 1 ] && dialog --yesno "Apply the changed categories now?\n(downloads lists and reloads CoreDNS, ~1-10 s DNS blip)" 8 60; then
           save_enabled $keys; clear; run_update_detached
@@ -539,6 +568,35 @@ cmd_menu() {
   done
 }
 
+cmd_help() {
+  cat <<EOF
+unifi-blocklist $VERSION: free blocklists in UniFi's own content filter
+
+Usage: $0 <command>
+
+Everyday
+  menu                Choose categories in a menu and apply them
+  status              Show what is selected, applied and running
+  update              Download the lists now and apply them if they changed
+
+Categories
+  categories          List all categories and which ones are on
+  enable KEY...       Turn categories on, e.g.: enable GAMBLING MALWARE
+  disable KEY...      Turn categories off
+
+Maintenance
+  check               Check that this gateway is compatible (changes nothing)
+  apply               Load the downloaded list again (DNS pauses ~10 s)
+  upgrade [--force]   Install the newest release, keeping your settings
+  version             Show the installed version
+  install             Set up the background services
+  uninstall           Remove the services and restore UniFi's own list
+
+Settings: $CONF_FILE
+Log:      grep unifi-blocklist /var/log/messages
+EOF
+}
+
 case "${1:-}" in
   menu)       cmd_menu ;;
   categories) cmd_categories ;;
@@ -553,5 +611,6 @@ case "${1:-}" in
   check)      cmd_check ;;
   upgrade)    shift; cmd_upgrade "$@" ;;
   version)    echo "$VERSION" ;;
-  *) echo "Usage: $0 {menu|categories|enable KEY..|disable KEY..|update|apply|status|check|install|uninstall|upgrade [--force]|version|watch}"; exit 1 ;;
+  ""|help|-h|--help) cmd_help ;;
+  *) echo "Unknown command: $1"; echo; cmd_help; exit 1 ;;
 esac
