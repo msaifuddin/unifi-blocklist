@@ -93,7 +93,7 @@ On the gateway:
 It should look like this (with your own categories), with `Applied : yes` and the watcher running:
 
 ```
-Version     : 1.2.0
+Version     : 1.2.1
 Categories  : ADS_PRO BOTNETS COUNTERFEIT_BRANDS CRYPTOCURRENCY
               CRYPTOMINING DECEPTIVE_ADS GAMBLING HACKING MALWARE
               PHISHING SPYWARE
@@ -120,7 +120,7 @@ nslookup app-measurement.com 192.168.1.1
 ssh -t root@192.168.1.1 /data/unifi-blocklist/blocklist.sh menu
 ```
 
-- Use the arrow keys and Enter to open a group.
+- Use the arrow keys and Enter to open a group, or press its number (`0` for the tenth group).
 - Press Space to switch a category on or off, then Enter to confirm.
 - Choose **Apply now** to download the lists and activate them. This takes from a few seconds to a minute. DNS then pauses while the filter loads the new list: about 10 seconds for 900,000 domains, less for smaller lists.
 

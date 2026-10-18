@@ -10,7 +10,7 @@
 
 set -uo pipefail
 
-VERSION="1.2.0"
+VERSION="1.2.1"
 REPO="msaifuddin/unifi-blocklist"
 
 BASE_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -745,6 +745,9 @@ run_update_detached() {
 cmd_menu() {
   command -v dialog >/dev/null || { echo "dialog not installed, use: $0 categories / enable / disable"; return 1; }
   local groups=() choice g i items na picked current dirty=0 keys kind hint notice sel
+  # One character per group: dialog jumps to the next tag starting with the typed key,
+  # so "1" and "10" would clash. A, L, S and Q are taken by the other menu entries.
+  local tags="1234567890BCDEFGHIJKMNOPRTUVWXYZ"
   mapfile -t groups < <(awk -F'|' '$1=="C" && !seen[$2]++ {print $2}' "$CATALOG")
   keys="$(enabled_keys)"
 
@@ -755,7 +758,7 @@ cmd_menu() {
       local total on
       total=$(awk -F'|' -v g="$g" '$1=="C" && $2==g && $5!="-"' "$CATALOG" | wc -l)
       on=$(awk -F'|' -v g="$g" '$1=="C" && $2==g {print $3}' "$CATALOG" | grep -cxF -f <(echo "$keys") || true)
-      menu+=("$((i + 1))" "$(printf '%-34s %2s/%-2s on' "$g" "$on" "$total")")
+      menu+=("${tags:i:1}" "$(printf '%-34s %2s/%-2s on' "$g" "$on" "$total")")
     done
     menu+=("" "" "A" "Apply now (download lists + reload)" "L" "Look up why a domain is blocked" "S" "Status" "Q" "Quit$( [ $dirty = 1 ] && echo ' (unsaved changes)')")
 
@@ -779,7 +782,7 @@ cmd_menu() {
         [ $dirty = 1 ] && sel="$sel"$'\n\n'"Unsaved     : $(paste -sd' ' <<< "$keys" | wrap_list)"
         dialog --title "Status" --cr-wrap --no-collapse --msgbox "$sel" $(( $(wc -l <<< "$sel") + 4 )) 76 ;;
       Q)
-        if [ $dirty = 1 ] && dialog --yesno "Apply the changed categories now?\n(downloads lists and reloads CoreDNS, ~1-10 s DNS blip)" 8 60; then
+        if [ $dirty = 1 ] && dialog --yesno "Apply the changed categories now?\n(downloads lists and reloads CoreDNS, DNS pauses ~10-20 s)" 8 66; then
           save_enabled $keys; clear; run_update_detached
         else
           clear
@@ -787,27 +790,30 @@ cmd_menu() {
         fi
         return 0 ;;
       *)
-        g="${groups[$((choice - 1))]}"
+        i="${tags%%"$choice"*}"; g="${groups[${#i}]:-}"
+        [ -n "$g" ] || continue
         items=(); na=""
         while IFS='|' read -r _ _ key label src; do
           if [ "$src" = "-" ]; then na="${na}${label}, "; continue; fi
           grep -qxF "$key" <<< "$keys" && current=on || current=off
           items+=("$key" "$label" "$current")
         done < <(awk -F'|' -v g="$g" '$1=="C" && $2==g' "$CATALOG")
-        kind=--checklist; hint="Space = toggle, Enter = OK."
+        # --separate-output is only valid for checklists; dialog 1.3 rejects it with --radiolist.
+        kind=(--separate-output --checklist); hint="Space = toggle, Enter = OK."
         if [ "$g" = "$EXCLUSIVE_GROUP" ]; then
           # One level at a time, or off.
-          kind=--radiolist; hint="Space = select one level, Enter = OK."
+          kind=(--radiolist); hint="Space = select one level, Enter = OK."
           printf '%s\n' "${items[@]}" | grep -qx on && current=off || current=on
           items=(OFF "Off" "$current" "${items[@]}")
         fi
-        picked=$(dialog --title "$g" --no-tags --separate-output "$kind" \
+        picked=$(dialog --title "$g" --no-tags "${kind[@]}" \
           "${hint}${na:+\n\nNo free list (not shown): ${na%, }}" 24 76 14 "${items[@]}" 3>&1 1>&2 2>&3) || continue
         [ "$picked" = OFF ] && picked=""
         # Replace this group's keys with the picked ones.
+        sel="$keys"
         for ((i = 0; i < ${#items[@]}; i += 3)); do keys="$(grep -vxF "${items[$i]}" <<< "$keys")"; done
         keys="$(printf '%s\n%s\n' "$keys" "$picked" | grep -v '^$' | sort -u)"
-        dirty=1 ;;
+        [ "$keys" = "$(grep -v '^$' <<< "$sel" | sort -u)" ] || dirty=1 ;;
     esac
   done
 }
