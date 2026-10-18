@@ -83,14 +83,14 @@ C|Ad Block (HaGeZi)|ADS_PRO|Pro - recommended (199k)|hg_pro
 C|Ad Block (HaGeZi)|ADS_PROPLUS|Pro++ (212k, may break some sites)|hg_proplus
 C|Ad Block (HaGeZi)|ADS_ULTIMATE|Ultimate (234k, breaks sites)|hg_ultimate
 
-C|Security & Threat Protection|BOTNETS|Botnets (Threat Intel 516k)|hg_tif
+C|Security & Threat Protection|BOTNETS|Botnets (Threat Intel 897k)|hg_tif
 C|Security & Threat Protection|COUNTERFEIT_BRANDS|Counterfeit Brands|hg_fake
 C|Security & Threat Protection|HACKING|Hacking|ut1_hacking
 C|Security & Threat Protection|SPYWARE|Spyware|ut1_stalkerware hg_tif
-C|Security & Threat Protection|MALWARE|Malware (Threat Intel 516k)|hg_tif
+C|Security & Threat Protection|MALWARE|Malware (Threat Intel 897k)|hg_tif
 C|Security & Threat Protection|ANONYMIZERS|Anonymizers (VPN/proxy/DoH bypass)|hg_bypass
 C|Security & Threat Protection|DECEPTIVE_ADS|Deceptive Ads|hg_popupads
-C|Security & Threat Protection|PHISHING|Phishing (Threat Intel 516k)|hg_tif
+C|Security & Threat Protection|PHISHING|Phishing (Threat Intel 897k)|hg_tif
 C|Security & Threat Protection|DNS_TUNNELING|DNS Tunneling|-
 C|Security & Threat Protection|QUESTIONABLE_ACTIVITIES|Questionable Activities|-
 C|Security & Threat Protection|DGA_DOMAINS|DGA Domains (626k, heavy)|nrd_dga7

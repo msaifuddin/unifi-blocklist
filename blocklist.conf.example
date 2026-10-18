@@ -9,11 +9,18 @@ LIST_URLS=(
   # "https://big.oisd.nl/domainswild2"   # OISD Big
 )
 
-# Merged list must be within these bounds or it is not applied. MIN_ENTRIES only
-# applies when downloaded lists are selected (not to custom domains on their own).
-# ~200k domains costs CoreDNS about 15 MB RAM; 1.5M is a safe ceiling on a UCG Ultra (3 GB).
+# All lists together must be within these bounds or they are not applied. MIN_ENTRIES
+# only applies when downloaded lists are selected (not to custom domains on their own).
+# UniFi limits CoreDNS to about 265 MB on a UCG Ultra, and 1.2M domains use about
+# 200 MB of it. If CoreDNS reaches the limit, it is killed and restarted, and DNS
+# pauses. `blocklist.sh status` shows the current use.
 MIN_ENTRIES=1000
-MAX_ENTRIES=1500000
+MAX_ENTRIES=1300000
+
+# 1 = the Ad Block level chosen in the menu replaces UniFi's own Ad Block list, and
+# UniFi stops downloading its list. 0 = UniFi keeps its own list and the chosen
+# level goes into the block list next to it. Run `blocklist.sh update` after changing.
+REPLACE_UNIFI_ADBLOCK=1
 
 # Seconds between checks that UniFi hasn't regenerated the block file.
 WATCH_INTERVAL=15
