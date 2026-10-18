@@ -22,6 +22,12 @@ MAX_ENTRIES=1300000
 # level goes into the block list next to it. Run `blocklist.sh update` after changing.
 REPLACE_UNIFI_ADBLOCK=1
 
+# 1 = the block page (shown for blocked sites, address 203.0.113.250) says which
+# category and list blocked the site. On HTTPS sites, browsers only show it on
+# devices that trust UniFi's certificate (/run/utm/lighttpd.crt on the gateway);
+# others show a certificate warning. 0 = UniFi's own page.
+BLOCK_PAGE=1
+
 # Seconds between checks that UniFi hasn't regenerated the block file.
 WATCH_INTERVAL=15
 

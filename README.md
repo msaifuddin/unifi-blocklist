@@ -6,6 +6,7 @@ On UniFi OS, the detailed content-filter categories (Malware, Phishing, Gambling
 
 - the same category names as the greyed-out UniFi list can be switched on and off from a menu,
 - the Ad Block level chosen in the menu (HaGeZi Light to Ultimate) replaces UniFi's own Ad Block list,
+- the block page says which category and list blocked a site,
 - blocked domains still appear in the UniFi web UI, ads as Ad Block,
 - the **allow list in the UniFi UI keeps working**,
 - UniFi's own files are never edited, and everything can be removed with one command,
@@ -23,6 +24,10 @@ Main menu: one entry per UniFi CyberSecure group, with how many categories are s
 Inside a group: the same categories as the greyed-out UniFi list. Categories with no free list available are named at the top instead of being shown.
 
 ![Security & Threat Protection group](docs/screenshots/tui-security.svg)
+
+Block page: what a blocked site shows (here with a made-up name).
+
+![Block page](docs/screenshots/blockpage.png)
 
 ## Compatibility
 
@@ -93,12 +98,13 @@ On the gateway:
 It should look like this (with your own categories), with `Applied : yes` and the watcher running:
 
 ```
-Version     : 1.2.2
+Version     : 1.3.0
 Categories  : ADS_PRO BOTNETS COUNTERFEIT_BRANDS CRYPTOCURRENCY
               CRYPTOMINING DECEPTIVE_ADS GAMBLING HACKING MALWARE
               PHISHING SPYWARE
 Domains     : 1,099,865 + 201,729 Ad Block (downloaded 2026-10-18 12:07)
 Ad Block    : selected level replaces UniFi's own list
+Block page  : shows the category and list
 Applied     : yes
 CoreDNS     : running (pid 919559, 193 of 265 MB memory limit)
 Watcher     : running
@@ -122,7 +128,7 @@ ssh -t root@192.168.1.1 /data/unifi-blocklist/blocklist.sh menu
 
 - Use the arrow keys and Enter to open a group, or press its number (`0` for the tenth group).
 - Press Space to switch a category on or off, then Enter to confirm.
-- Choose **Apply now** to download the lists and activate them. This takes from a few seconds to a minute. DNS then pauses while the filter loads the new list: about 10 seconds for 900,000 domains, less for smaller lists.
+- Choose **Apply now** to download the lists and activate them. This takes from a few seconds to a minute. DNS then pauses while the filter loads the new lists: about 10–20 seconds for 1.3 million domains, less for smaller lists.
 
 The same can be done without the menu:
 
@@ -159,7 +165,7 @@ The full mapping of categories to lists is in [`categories.list`](categories.lis
 
 | I want to… | Do this |
 |---|---|
-| Find out why a site is blocked | `/data/unifi-blocklist/blocklist.sh why example.com`, or **Look up** in the menu (see below) |
+| Find out why a site is blocked | Read the block page, or run `/data/unifi-blocklist/blocklist.sh why example.com`, or **Look up** in the menu (see below) |
 | Unblock a site | Add it to the **allow list** in the UniFi UI (Content Filter). It takes effect within about 40 seconds. |
 | Block an extra site | Add it to the **block list** in the UniFi UI, or to `/data/unifi-blocklist/custom-block.list` (one domain per line) and run `systemctl start unifi-blocklist-update`. |
 | See what's being blocked | UniFi UI, or `tail -f /var/log/ulog/content_filtering.log` on the gateway |
@@ -175,7 +181,20 @@ Ads appear in the UniFi UI as Ad Block blocks, everything else as content-filter
 
 ### Why is a site blocked?
 
-A blocked site doesn't show a page that says why. Most sites use HTTPS, so the browser shows a connection or certificate error instead. To see which list and category block a domain, run `why` with the domain or a pasted URL:
+**The block page.** A site blocked by one of the categories shows a page that says why:
+
+- the blocked name, and the category (with its group) it's in, for example *Blocked because it's in the Gambling category (Adult and Sensitive Content)*,
+- the list entry that matched, when it's a parent domain (`example-casino.com` blocks `www.example-casino.com`),
+- the list it came from, for example *HaGeZi Gambling*, or the UniFi block list or `custom-block.list`,
+- what to do if it's a mistake.
+
+Notes:
+
+- Ads blocked by Ad Block get no page: they're answered with `0.0.0.0` so they fail without a page, as ads inside other pages should.
+- On HTTPS sites, the browser only shows the page on devices that trust UniFi's certificate; other devices show a certificate warning instead. The certificate is `/run/utm/lighttpd.crt` on the gateway (`scp root@192.168.1.1:/run/utm/lighttpd.crt .`); install it as a trusted root certificate on the devices where you want the page. Anyone with the gateway's private key could then impersonate any HTTPS site to those devices.
+- Set `BLOCK_PAGE=0` in `blocklist.conf` and run an update to keep UniFi's own page.
+
+**From the command line.** To see which list and category block a domain, run `why` with the domain or a pasted URL:
 
 ```console
 # /data/unifi-blocklist/blocklist.sh why https://www.example-casino.com/promo
@@ -188,8 +207,7 @@ Result      : blocked by the list entries above
 
 - **Lists** shows the entries that match, most specific first. An entry also covers its subdomains, so `example-casino.com` blocks `www.example-casino.com`.
 - **Categories** shows only the categories that are switched on. One list can back several categories: for example, the Threat Intelligence feed is behind Botnets, Malware, Phishing and Spyware, so all four are shown.
-- **DNS answer** is what the filter answers right now, asked the same way a device on a filtered network asks.
-- **DNS answer** `0.0.0.0` means Ad Block; `203.0.113.250` means one of the other categories or the UniFi UI block list.
+- **DNS answer** is what the filter answers right now, asked the same way a device on a filtered network asks: `0.0.0.0` means Ad Block, `203.0.113.250` one of the other categories or the UniFi UI block list.
 - **Result** also covers blocks that don't come from these lists, such as UniFi's own Ad Block list when it isn't replaced, and shows any UniFi allow list entry for the domain.
 
 
@@ -198,7 +216,7 @@ Result      : blocked by the list entries above
 **How you find out.** Each time the lists are updated, the script also asks GitHub for the newest release of this project. That happens 5 minutes after the gateway starts, every 12 hours after that, and whenever you run an update yourself (menu **Apply**, `blocklist.sh update`). A new release is therefore noticed within about half a day. If it's newer than what's installed, `status` and the menu show:
 
 ```
-Version     : 1.1.2 (update available: 1.2.2, run: blocklist.sh upgrade)
+Version     : 1.2.2 (update available: 1.3.0, run: blocklist.sh upgrade)
 ```
 
 The same line is written to the log (`grep unifi-blocklist /var/log/messages`). Nothing is installed automatically.
@@ -214,7 +232,7 @@ It installs the newest release and keeps your settings, categories and custom do
 **Install a specific version.** To install an older release (for example if a new one causes problems), or the development version:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/msaifuddin/unifi-blocklist/main/install.sh | TAG=v1.1.2 bash
+curl -fsSL https://raw.githubusercontent.com/msaifuddin/unifi-blocklist/main/install.sh | TAG=v1.2.2 bash
 curl -fsSL https://raw.githubusercontent.com/msaifuddin/unifi-blocklist/main/install.sh | BRANCH=main bash
 ```
 
@@ -228,13 +246,13 @@ All releases and their changes are listed on the [releases page](https://github.
 ## Uninstall
 
 ```sh
-/data/unifi-blocklist/blocklist.sh uninstall   # stops the services, restores UniFi's own block list and Ad Block list
+/data/unifi-blocklist/blocklist.sh uninstall   # stops the services, restores UniFi's own block list, Ad Block list and block page
 rm -rf /data/unifi-blocklist                   # optional: delete all files
 ```
 
 ## Troubleshooting
 
-**A site or app stopped working.** Add its domain to the allow list in the UniFi UI. `blocklist.sh why DOMAIN` shows which category blocked it, in case you'd rather switch that category off. To find the domain, look at `/var/log/ulog/content_filtering.log` on the gateway while reproducing the problem. If many sites break, choose a lower Ad Block level.
+**A site or app stopped working.** The block page says which category and list blocked it (if it shows; see [Why is a site blocked?](#why-is-a-site-blocked)), and so does `blocklist.sh why DOMAIN`. Add the domain to the allow list in the UniFi UI, or switch that category off. To find the domain of something that shows no page, such as an app, look at `/var/log/ulog/content_filtering.log` on the gateway while reproducing the problem. If many sites break, choose a lower Ad Block level.
 
 **Allowed a domain, but part of the site is still blocked.** An allow list entry also covers its subdomains, except names that a list blocks more specifically: allowing `example.com` doesn't unblock `ads.example.com` if `ads.example.com` itself is on a list. Run `blocklist.sh why` on the blocked name and add that name to the allow list too.
 
@@ -276,8 +294,9 @@ Facts this project relies on (verified on the UCG Ultra):
 - All three lists go into one lookup table, and the most specific matching name decides. For the same name, the allow list beats the block list, which beats Ad Block. An allowed `example.com` therefore doesn't unblock a listed `ads.example.com`.
 - UniFi downloads a new Ad Block list 10 minutes after each CoreDNS start and every 24–26 hours after that, then reloads it in place. The reload briefly holds two copies of everything, so with large lists CoreDNS exceeds its memory limit (about 265 MB on a UCG Ultra) and is stopped and restarted. Details: [UniFi's built-in Ad Block list](docs/unifi-ad-block-list.md).
 - CoreDNS reads these files only at start-up. UniFi's supervisor (`ubios-udapi-server`) restarts CoreDNS about 1 second after it stops, and waits a few seconds longer after several restarts in a row, so restarting it is how a new list is loaded.
-- There is no way to load a new list without a pause. CoreDNS answers nothing while it reads the list (about 10.5 seconds for 900,000 domains on a UCG Ultra). Its `SIGUSR1` reload also starts a new process with the same pause, and the command socket (`/run/utm/coredns_command.sock`, gRPC) has no command for loading lists.
+- There is no way to load a new list without a pause. CoreDNS answers nothing while it reads the lists (about 10–20 seconds for 1.3 million domains on a UCG Ultra). Its `SIGUSR1` reload also starts a new process with the same pause, and the command socket (`/run/utm/coredns_command.sock`, gRPC) has no command for loading lists.
 - Blocks from the block list return `203.0.113.250` / `2001:db8:1000::fa` and are logged with `"category":"INCLUSION"` in `/var/log/ulog/content_filtering.log`, which the UniFi UI reads. Ad Block returns `0.0.0.0` / `::` and is logged as `"type":"dnsAdBlock"`.
+- Requests to `203.0.113.250` on ports 80 and 443 are forwarded by a UniFi firewall rule to UniFi's lighttpd on `127.0.0.1:2080` / `:20443` (`/run/utm/lighttpd.conf`). It serves every path from `/usr/share/lighttpd/www`, falling back to `index.html`. For HTTPS it creates a certificate for each visited name, signed by "UniFi SSL Certificate Authority" (`/run/utm/lighttpd.crt`, created once and kept across reboots).
 
 What the script does (`/data/unifi-blocklist/blocklist.sh`):
 
@@ -291,9 +310,27 @@ What the script does (`/data/unifi-blocklist/blocklist.sh`):
    - It mounts an empty read-only folder over `/usr/share/ubios-udapi-server/utm/tmp`, where UniFi's updater unpacks new lists. UniFi's update attempts then stop with "Failed to create temp dir", before they install anything or reload, so they no longer cause memory-limit restarts.
    - UniFi's own files stay untouched underneath the mounts. The mounts disappear at reboot (the watcher re-creates them) and are removed by `uninstall` or `REPLACE_UNIFI_ADBLOCK=0`.
    - It then restarts CoreDNS and checks that the block list marker gets the block page address and the Ad Block marker gets `0.0.0.0`, and still do 5 seconds later. If not, it puts the previous files back and restarts CoreDNS again.
-3. **watch** (service): checks every 15 seconds that the marker is still present and the Ad Block mounts are in place. If UniFi has rebuilt the file, or the gateway restarted, it re-applies the lists.
+3. **block page**: after an apply, or an update with unchanged lists, it rebuilds the block page's index if the lists changed. The index is the block list split into 1,024 files by a hash of the domain (about 30 MB for 1.1 million domains, built in about 20 seconds), with the list names and categories in `meta.json`. The page (`blockpage.html`) and index are mounted read-only over `/usr/share/lighttpd/www`, which UniFi's block page server (lighttpd, for `203.0.113.250`) serves. The page looks up the visited name and its parents in the browser by fetching only the matching files. CoreDNS isn't restarted for this.
+4. **watch** (service): checks every 15 seconds that the marker is still present and the Ad Block and block page mounts are in place. If UniFi has rebuilt the file, or the gateway restarted, it re-applies the lists, or just mounts the block page again.
 
 The background services are systemd units copied into `/etc/systemd/system`. The configuration and lists live in `/data/unifi-blocklist`.
+
+### Load on the gateway
+
+Measured on a UCG Ultra with 1.1 million block list domains plus a 200,000-domain Ad Block list:
+
+| | Cost | When |
+|---|---|---|
+| List update | about 10 seconds of CPU to download and merge | every 12 hours, and when you apply categories |
+| DNS pause | about 10–20 seconds while CoreDNS loads the lists | only when the lists changed, and after UniFi rebuilds its files |
+| CoreDNS memory | about 160–200 MB of its 265 MB limit, all the time | grows with the number of domains (see [Size matters](#available-categories)) |
+| Block page index | about 20 seconds, around half of the 4 CPU cores; up to about 105 MB of memory, freed afterwards | only when the lists changed; after a reboot the page is just mounted again |
+| Disk | about 30 MB for the block page index, plus the downloaded lists | in `/data` |
+| Flash writes | about 16 MB per index rebuild, plus the list downloads | at most twice a day |
+| Block page views | the page (7 KB), list names (1.4 KB) and one to four index files of about 30 KB | per blocked page shown. UniFi's own page is 563 KB. Ads (`0.0.0.0`) never load a page. |
+| Background | a check every 15 seconds that the lists and mounts are in place | always |
+
+No extra programs run between these steps. The index is built after CoreDNS has the new lists, so DNS never waits for it. Replacing UniFi's Ad Block list also removes the memory-limit restarts that followed UniFi's own list downloads (see [How it works](#how-it-works)).
 
 ### Files
 
@@ -301,17 +338,19 @@ The background services are systemd units copied into `/etc/systemd/system`. The
 |---|---|
 | `blocklist.sh` | Main script: menu, check, install, update, apply, watch |
 | `install.sh` | Installer and updater (downloads this repository) |
-| `categories.list` | Category catalog: UniFi group, category, label, list sources |
-| `blocklist.conf` | Your settings: extra list URLs, size limits (created from `blocklist.conf.example`) |
+| `categories.list` | Category catalog: UniFi group, category, label, list sources and their names |
+| `blockpage.html` | The block page |
+| `blocklist.conf` | Your settings: extra list URLs, size limits, `REPLACE_UNIFI_ADBLOCK`, `BLOCK_PAGE`, `UPDATE_CHECK` (created from `blocklist.conf.example`) |
 | `categories.enabled` | Your selected categories |
 | `custom-block.list` | Optional extra domains to block |
-| `state/` | Downloaded lists (`sources/`), merged list, Ad Block list (`ads.list`) and its UniFi-format copy (`unifi-adblock/`), applied checksum, the files before the last apply (`target.prev`, `unifi-adblock.prev`, used for rollback), newest release seen (`latest-version`) |
+| `state/` | Downloaded lists (`sources/`), merged list, Ad Block list (`ads.list`) and its UniFi-format copy (`unifi-adblock/`), block page with its index (`blockpage/`), applied checksum, the files before the last apply (`target.prev`, `unifi-adblock.prev`, used for rollback), newest release seen (`latest-version`) |
 | `systemd/` | Service and timer definitions |
 
 ### Known limitations
 
-- Loading a new list restarts the filter. DNS pauses for as long as loading takes: about 10 seconds for 900,000 domains, less for smaller lists. Devices on filtered networks get no DNS answers during the pause. This happens only when the list content changes (at most twice a day) or after UniFi settings are saved.
+- Loading a new list restarts the filter. DNS pauses for as long as loading takes: about 10–20 seconds for 1.3 million domains, less for smaller lists. Devices on filtered networks get no DNS answers during the pause. This happens only when the list content changes (at most twice a day) or after UniFi settings are saved.
 - The UniFi UI counts blocks from categories other than Ad Block as content-filter blocks, not under the category's name.
+- The block page shows on HTTPS sites only on devices that trust UniFi's certificate (see [Why is a site blocked?](#why-is-a-site-blocked)). Ads blocked by Ad Block don't show a page.
 - While the Ad Block list is replaced, UniFi no longer downloads its own list, and `/var/log/coredns/coredns.log` shows a "Failed to create temp dir" warning at each attempt. With `REPLACE_UNIFI_ADBLOCK=0`, UniFi's downloads and in-place reloads continue, including the memory-limit restarts with large lists.
 - Not yet tested: behaviour across a firmware update, lists above 1.3 million domains, and models other than the UCG Ultra.
 

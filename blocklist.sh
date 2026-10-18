@@ -10,7 +10,7 @@
 
 set -uo pipefail
 
-VERSION="1.2.2"
+VERSION="1.3.0"
 REPO="msaifuddin/unifi-blocklist"
 
 BASE_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -29,6 +29,7 @@ RESTART_TIMEOUT=120        # seconds to wait for CoreDNS to load the list and an
 UPDATE_CHECK=1             # 1 = look for a newer release during the scheduled update (notify only)
 CUSTOM_BLOCK_FILE="${BASE_DIR}/custom-block.list"   # optional extra domains, one per line
 REPLACE_UNIFI_ADBLOCK=1    # 1 = the selected Ad Block level replaces UniFi's own Ad Block list
+BLOCK_PAGE=1               # 1 = UniFi's block page shows which category and list blocked the site
 
 # shellcheck source=/dev/null
 [ -f "$CONF_FILE" ] && . "$CONF_FILE"
@@ -54,6 +55,12 @@ ADS_MOUNTED="${STATE_DIR}/unifi-adblock.mounted" # exists while we have UniFi's 
 UNIFI_LIST_DIR="/etc/utm/pre_categorized_list"            # UniFi's Ad Block list (CSV)
 UNIFI_UPDATER_TMP="/usr/share/ubios-udapi-server/utm/tmp"   # where UniFi's updater unpacks new lists
 CGROUP="/sys/fs/cgroup/utm_content_filtering_service"     # CoreDNS's memory-limited cgroup
+MERGED_SOURCES="${STATE_DIR}/merged.sources"   # lists in the block list, one id (or id|url) per line
+BLOCKPAGE_SRC="${BASE_DIR}/blockpage.html"     # the block page (shipped)
+BLOCKPAGE_DIR="${STATE_DIR}/blockpage"         # page + index, mounted read-only over LIGHTTPD_WWW
+BP_SUM="${STATE_DIR}/blockpage.sha256"         # inputs the index was last built from
+BP_MOUNTED="${STATE_DIR}/blockpage.mounted"    # exists while our block page is mounted
+LIGHTTPD_WWW="/usr/share/lighttpd/www"         # UniFi's block page (served for 203.0.113.250)
 LOCK="/run/unifi-blocklist.lock"
 SYSTEMD_DIR="/etc/systemd/system"
 # Marks the boundary between UniFi's own entries and ours. ".invalid" is a
@@ -226,7 +233,7 @@ with_lock() {
 
 # Download the sources of the enabled categories (+ LIST_URLS), merge, apply.
 cmd_update() {
-  local tmp id url ad_ids="" lists=0 files=() ad_files=()
+  local tmp id url ad_ids="" lists=0 files=() ad_files=() srcs=()
   mkdir -p "$CACHE_DIR"
   check_for_update
   tmp="$(mktemp -d)"
@@ -242,24 +249,24 @@ cmd_update() {
     elif [[ "$ad_ids" == *" $id "* ]]; then
       ad_files+=("$CACHE_DIR/$id")
     else
-      files+=("$CACHE_DIR/$id")
+      files+=("$CACHE_DIR/$id"); srcs+=("$id")
     fi
   done
   for url in "${LIST_URLS[@]}"; do
     # Cache by URL, so reordering or replacing URLs never mixes up their copies.
     id="extra-$(printf '%s' "$url" | sha256sum | cut -c1-12)"
     lists=$((lists + 1))
-    if fetch_source "$id" "$url" "$tmp"; then files+=("$CACHE_DIR/$id"); else log "ERROR: no copy of $url available, skipping it"; fi
+    if fetch_source "$id" "$url" "$tmp"; then files+=("$CACHE_DIR/$id"); srcs+=("$id|$url"); else log "ERROR: no copy of $url available, skipping it"; fi
   done
   if [ "$lists" -gt 0 ] && [ $((${#files[@]} + ${#ad_files[@]})) -eq 0 ]; then
     log "ERROR: none of the selected lists could be downloaded, keeping previous list"
     return 1
   fi
-  [ -f "$CUSTOM_BLOCK_FILE" ] && normalise < "$CUSTOM_BLOCK_FILE" > "$tmp/custom" && files+=("$tmp/custom")
+  [ -f "$CUSTOM_BLOCK_FILE" ] && normalise < "$CUSTOM_BLOCK_FILE" > "$tmp/custom" && files+=("$tmp/custom") && srcs+=("custom")
   with_lock merge_and_apply
 }
 
-# Second half of cmd_update, under the lock: uses its tmp, lists, files and ad_files.
+# Second half of cmd_update, under the lock: uses its tmp, lists, files, ad_files and srcs.
 merge_and_apply() {
   local n n_ads
   if [ ${#files[@]} -gt 0 ]; then sort -u "${files[@]}" > "$tmp/merged"; else : > "$tmp/merged"; fi
@@ -271,9 +278,11 @@ merge_and_apply() {
     return 1
   fi
   [ $((n + n_ads)) -eq 0 ] && log "Nothing selected: only UniFi's own block list entries will be active"
+  printf '%s\n' "${srcs[@]}" | grep . > "$MERGED_SOURCES"
   if [ -f "$MERGED" ] && cmp -s "$tmp/merged" "$MERGED" && cmp -s "$tmp/ads" "$ADS"; then
     if [ "$(list_sum)" = "$(cat "$APPLIED" 2>/dev/null)" ]; then
       log "List unchanged ($n domains + $n_ads Ad Block)"
+      build_blockpage
       return 0
     fi
   else
@@ -326,8 +335,8 @@ apply_locked() {
   fi
   restart_coredns verify
   case $? in
-    0) list_sum > "$APPLIED"; memory_note ;;
-    2) return 0 ;;
+    0) list_sum > "$APPLIED"; memory_note; build_blockpage ;;
+    2) build_blockpage; return 0 ;;
     *) rollback; return 1 ;;
   esac
 }
@@ -419,6 +428,103 @@ memory_note() {
   return 0
 }
 
+# --- block page -----------------------------------------------------------------
+#
+# Names on the block list are answered with 203.0.113.250, where UniFi's lighttpd
+# serves a generic page from LIGHTTPD_WWW (for HTTPS with a certificate made for the
+# visited name, signed by UniFi's own CA). We mount our page there read-only, with
+# an index of the block list split into BP_SHARDS files by a hash of the domain.
+# The page hashes the visited name and its parents the same way, fetches those few
+# files from the same address and shows the category and list that matched.
+
+BP_SHARDS=1024
+BP_CHARS="abcdefghijklmnopqrstuvwxyz0123456789-._"
+
+blockpage_wanted() { [ "${BLOCK_PAGE:-0}" = 1 ] && [ -d "$LIGHTTPD_WWW" ] && [ -f "$BLOCKPAGE_SRC" ]; }
+
+# List names and the enabled categories behind them, as JSON for the page.
+blockpage_meta() {
+  local keys
+  keys="$(enabled_keys | paste -sd'|')"
+  awk -F'|' -v keys="$keys" -v ads="$EXCLUSIVE_GROUP" -v updated="$(date -r "$MERGED" '+%F %H:%M')" \
+      -v shards="$BP_SHARDS" -v chars="$BP_CHARS" -v custom="$(basename "$CUSTOM_BLOCK_FILE")" '
+    function js(v) { gsub(/\\/, "\\\\", v); gsub(/"/, "\\\"", v); return "\"" v "\"" }
+    BEGIN { n = split(keys, k, "|"); for (i = 1; i <= n; i++) want[k[i]] = 1 }
+    FILENAME != ARGV[1] { if ($2 != "") extra[++ne] = $1 "|" $2; next }
+    $1 == "S" { name[$2] = $4; order[++ns] = $2 }
+    $1 == "C" && ($3 in want) && $5 != "-" {
+      label = $4; sub(/ \([^)]*\)$/, "", label); group = $2
+      if (group == ads) { label = "Ads and tracking"; group = "Ad Block" }
+      m = split($5, s, " ")
+      obj = "{\"name\":" js(label) ",\"group\":" js(group) "}"
+      # Test first: mawk creates cats[x] on the left of an assignment before evaluating the right.
+      for (i = 1; i <= m; i++) if (s[i] in cats) cats[s[i]] = cats[s[i]] "," obj; else cats[s[i]] = obj
+    }
+    END {
+      printf "{\"updated\":%s,\"shards\":%d,\"chars\":%s,\"sources\":{", js(updated), shards, js(chars)
+      printf "\"ui\":{\"name\":\"UniFi block list\",\"categories\":[]},\"custom\":{\"name\":%s,\"categories\":[]}", js(custom)
+      for (i = 1; i <= ns; i++) if (order[i] in cats) printf ",%s:{\"name\":%s,\"categories\":[%s]}", js(order[i]), js(name[order[i]]), cats[order[i]]
+      for (i = 1; i <= ne; i++) { split(extra[i], e, "|"); printf ",%s:{\"name\":%s,\"categories\":[]}", js(e[1]), js(e[2]) }
+      print "}}"
+    }' "$CATALOG" "$MERGED_SOURCES"
+}
+
+# (Re)build the index when the block list changed, then make sure the page is mounted.
+# Callers hold the lock. Failures are logged; blocking is never affected.
+build_blockpage() {
+  local tmp sum tab=$'\t'
+  blockpage_wanted || { release_blockpage; return 0; }
+  [ -f "$MERGED" ] && [ -f "$MERGED_SOURCES" ] || return 0
+  sum="$({ cat "$BASE_DIR/blocklist.sh" "$CATALOG" "$MERGED_SOURCES" "$UI_LIST" "$ENABLED_FILE" "$BLOCKPAGE_SRC"; sha256sum < "$MERGED"
+           [ -f "$CUSTOM_BLOCK_FILE" ] && cat "$CUSTOM_BLOCK_FILE"; } 2>/dev/null | sha256sum)"
+  if [ "$sum" != "$(cat "$BP_SUM" 2>/dev/null)" ] || ! [ -f "$BLOCKPAGE_DIR/__ub/meta.json" ]; then
+    tmp="$(mktemp -d "$STATE_DIR/.blockpage.XXXXXX")" || { log "ERROR: could not build the block page"; return 1; }
+    mkdir -p "$tmp/__ub/i" "$BLOCKPAGE_DIR"
+    # "domain<TAB>id,id" for every block list entry, then one file per hash bucket.
+    {
+      while IFS='|' read -r id _; do
+        case "$id" in
+          custom) [ -f "$CUSTOM_BLOCK_FILE" ] && normalise < "$CUSTOM_BLOCK_FILE" | awk '{print $1 "\tcustom"}' ;;
+          *) [ -f "$CACHE_DIR/$id" ] && awk -v id="$id" '{print $1 "\t" id}' "$CACHE_DIR/$id" ;;
+        esac
+      done < "$MERGED_SOURCES"
+      [ -f "$UI_LIST" ] && awk 'NF {print tolower($1) "\tui"}' "$UI_LIST"
+    } | LC_ALL=C sort -u \
+      | awk -F'\t' '$1 == p {ids = ids "," $2; next} {if (p != "") print p "\t" ids; p = $1; ids = $2} END {if (p != "") print p "\t" ids}' \
+      | awk -F'\t' -v C="$BP_CHARS" -v N="$BP_SHARDS" \
+          '{h = 0; n = length($1); for (i = 1; i <= n; i++) h = (h * 31 + index(C, substr($1, i, 1))) % N; print h "\t" $0}' \
+      | LC_ALL=C sort -t "$tab" -k1,1n -s \
+      | awk -F'\t' -v d="$tmp/__ub/i" '{if (!started || $1 != b) {if (started) close(f); f = d "/" $1; b = $1; started = 1} print $2 "\t" $3 > f}'
+    if ! blockpage_meta > "$tmp/__ub/meta.json" || ! cp "$BLOCKPAGE_SRC" "$tmp/index.html"; then
+      rm -rf "$tmp"; log "ERROR: could not build the block page"; return 1
+    fi
+    # Swap in place: the mount refers to BLOCKPAGE_DIR itself, so replace what's inside it.
+    chmod -R u=rwX,go=rX "$tmp"
+    rm -rf "$BLOCKPAGE_DIR/__ub.old"
+    [ -d "$BLOCKPAGE_DIR/__ub" ] && mv "$BLOCKPAGE_DIR/__ub" "$BLOCKPAGE_DIR/__ub.old"
+    mv "$tmp/__ub" "$BLOCKPAGE_DIR/__ub" && mv "$tmp/index.html" "$BLOCKPAGE_DIR/index.html"
+    chmod 755 "$BLOCKPAGE_DIR"
+    rm -rf "$BLOCKPAGE_DIR/__ub.old" "$tmp"
+    echo "$sum" > "$BP_SUM"
+    log "Block page: index of $(cat "$BLOCKPAGE_DIR"/__ub/i/* 2>/dev/null | wc -l) domains"
+  fi
+  if ! mountpoint -q "$LIGHTTPD_WWW"; then
+    ro_mount "$BLOCKPAGE_DIR" "$LIGHTTPD_WWW" || return 1
+    log "Block page: shows why a site is blocked"
+  fi
+  touch "$BP_MOUNTED"
+}
+
+# Give UniFi its own block page back.
+release_blockpage() {
+  # lighttpd may have a file open for a moment; a lazy unmount then detaches it once it's done.
+  if mountpoint -q "$LIGHTTPD_WWW"; then
+    { umount "$LIGHTTPD_WWW" 2>/dev/null || umount -l "$LIGHTTPD_WWW"; } && log "UniFi's own block page is back" || log "ERROR: could not unmount $LIGHTTPD_WWW"
+  fi
+  rm -f "$BP_MOUNTED"
+  return 0
+}
+
 # Re-apply whenever UniFi regenerates the list (reboot, UI settings change).
 # After a failed restart, wait 1, 2, 4 ... 60 minutes before trying again, since
 # every attempt pauses DNS. A failed write is retried at the normal interval.
@@ -437,6 +543,10 @@ cmd_watch() {
       # Only mounts we had in place; turning the setting on or off is for 'update'.
       log "UniFi's Ad Block list isn't replaced any more (it was unmounted), re-applying"
       cmd_apply force; rc=$?
+    fi
+    # The block page doesn't need CoreDNS: just mount it again (after a reboot, for example).
+    if [ -z "$rc" ] && [ -f "$BP_MOUNTED" ] && blockpage_wanted && ! mountpoint -q "$LIGHTTPD_WWW"; then
+      with_lock build_blockpage
     fi
     if [ -n "$rc" ]; then
       if [ "$rc" -eq 0 ]; then
@@ -500,6 +610,13 @@ cmd_status() {
   else
     echo "Ad Block    : UniFi's own list (REPLACE_UNIFI_ADBLOCK=0)"
   fi
+  if mountpoint -q "$LIGHTTPD_WWW" && [ -f "$BLOCKPAGE_DIR/__ub/meta.json" ]; then
+    echo "Block page  : shows the category and list"
+  elif [ "${BLOCK_PAGE:-0}" = 1 ]; then
+    echo "Block page  : UniFi's own page (not loaded yet)"
+  else
+    echo "Block page  : UniFi's own page (BLOCK_PAGE=0)"
+  fi
   if ! [ -f "$TARGET" ] || ! grep -qxF "$SENTINEL" "$TARGET"; then
     echo "Applied     : NO"
   elif [ -f "$MERGED" ] && [ "$(list_sum)" = "$(cat "$APPLIED" 2>/dev/null)" ] \
@@ -561,6 +678,11 @@ cmd_check() {
   else
     warn "UniFi's Ad Block list not found ($UNIFI_LIST_DIR)" "The selected Ad Block level goes into the block list instead, next to UniFi's own Ad Block list."
   fi
+  if [ -d "$LIGHTTPD_WWW" ]; then
+    pass "UniFi's block page can be replaced ($LIGHTTPD_WWW)"
+  else
+    warn "UniFi's block page not found ($LIGHTTPD_WWW)" "Blocking works; the block page just won't show the reason."
+  fi
   read -r cur max <<< "$(coredns_memory)"
   [ -n "${max:-}" ] && pass "CoreDNS memory limit: ${max} MB (using ${cur} MB)"
   if ipset list dnsfilter 2>/dev/null | sed -n '/Members/,$p' | grep -q '[0-9]'; then
@@ -594,9 +716,10 @@ cmd_uninstall() {
   log "Uninstalled. Files in $BASE_DIR were left in place."
 }
 
-# Put back only what UniFi itself had in the block list, and UniFi's own Ad Block list.
+# Put back only what UniFi itself had in the block list, and UniFi's own Ad Block list and block page.
 remove_our_entries() {
   local changed=0
+  release_blockpage
   if mountpoint -q "$UNIFI_LIST_DIR" || mountpoint -q "$UNIFI_UPDATER_TMP"; then release_unifi_adblock; changed=1; fi
   if [ -f "$TARGET" ] && grep -qxF "$SENTINEL" "$TARGET"; then
     sed "/^${SENTINEL//./\\.}\$/,\$d" "$TARGET" > "$TARGET.tmp" && mv "$TARGET.tmp" "$TARGET"

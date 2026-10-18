@@ -16,7 +16,7 @@ REPO="msaifuddin/unifi-blocklist"
 TAG="${TAG:-}"
 BRANCH="${BRANCH:-}"
 DEST="/data/unifi-blocklist"
-FILES="blocklist.sh install.sh categories.list blocklist.conf.example README.md LICENSE systemd"
+FILES="blocklist.sh install.sh categories.list blocklist.conf.example blockpage.html README.md LICENSE systemd"
 
 [ "$(id -u)" = 0 ] || { echo "Please run as root (ssh root@<gateway-ip>)."; exit 1; }
 [ -d /data ] || { echo "/data not found: this does not look like a UniFi OS gateway."; exit 1; }
