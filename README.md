@@ -93,7 +93,7 @@ On the gateway:
 It should look like this (with your own categories), with `Applied : yes` and the watcher running:
 
 ```
-Version     : 1.2.1
+Version     : 1.2.2
 Categories  : ADS_PRO BOTNETS COUNTERFEIT_BRANDS CRYPTOCURRENCY
               CRYPTOMINING DECEPTIVE_ADS GAMBLING HACKING MALWARE
               PHISHING SPYWARE

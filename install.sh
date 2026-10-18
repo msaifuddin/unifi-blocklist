@@ -25,8 +25,9 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 if [ -z "$TAG" ] && [ -z "$BRANCH" ]; then
-  TAG="$(curl -fsS --max-time 20 -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${REPO}/releases/latest" \
-    | grep -o -m1 '"tag_name": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/' || true)"
+  # Read the whole response first: grep -m1 on the pipe can cut curl off ("Failed writing body").
+  json="$(curl -fsS --max-time 20 -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${REPO}/releases/latest" || true)"
+  TAG="$(grep -o -m1 '"tag_name": *"[^"]*"' <<< "$json" | sed -E 's/.*"([^"]*)"$/\1/' || true)"
   [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Could not find the latest release, installing main instead."; TAG=""; BRANCH=main; }
 fi
 if [ -n "$TAG" ]; then

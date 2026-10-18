@@ -10,7 +10,7 @@
 
 set -uo pipefail
 
-VERSION="1.2.1"
+VERSION="1.2.2"
 REPO="msaifuddin/unifi-blocklist"
 
 BASE_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -68,9 +68,10 @@ log() { logger -t unifi-blocklist -- "$*"; echo "$(date '+%F %T') $*"; }
 # Tag of the newest GitHub release (e.g. v1.1.0). Uses the API without a token
 # (60 requests per hour per address; this runs twice a day).
 latest_release() {
-  local tag
-  tag="$(curl -fsS --max-time 20 -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${REPO}/releases/latest" \
-    | grep -o -m1 '"tag_name": *"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')" || return 1
+  local json tag
+  # Read the whole response first: grep -m1 on the pipe can cut curl off ("Failed writing body").
+  json="$(curl -fsS --max-time 20 -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${REPO}/releases/latest")" || return 1
+  tag="$(grep -o -m1 '"tag_name": *"[^"]*"' <<< "$json" | sed -E 's/.*"([^"]*)"$/\1/')"
   [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
   echo "$tag"
 }
@@ -744,12 +745,12 @@ run_update_detached() {
 # Text UI (dialog): one checklist per UniFi category group.
 cmd_menu() {
   command -v dialog >/dev/null || { echo "dialog not installed, use: $0 categories / enable / disable"; return 1; }
-  local groups=() choice g i items na picked current dirty=0 keys kind hint notice sel
+  local groups=() choice g i items na picked current dirty=0 keys saved kind hint notice sel
   # One character per group: dialog jumps to the next tag starting with the typed key,
   # so "1" and "10" would clash. A, L, S and Q are taken by the other menu entries.
   local tags="1234567890BCDEFGHIJKMNOPRTUVWXYZ"
   mapfile -t groups < <(awk -F'|' '$1=="C" && !seen[$2]++ {print $2}' "$CATALOG")
-  keys="$(enabled_keys)"
+  keys="$(enabled_keys | grep -v '^$' | sort -u)"; saved="$keys"
 
   while :; do
     local menu=()
@@ -770,7 +771,7 @@ cmd_menu() {
     case "$choice" in
       "") continue ;;
       A)
-        save_enabled $keys; dirty=0; clear
+        save_enabled $keys; saved="$keys"; dirty=0; clear
         run_update_detached; echo; read -rp "Press Enter to return to the menu" _ ;;
       L)
         sel=$(dialog --title "Look up a domain" --inputbox "Domain or URL, e.g. ads.example.com" 8 60 3>&1 1>&2 2>&3) || continue
@@ -809,11 +810,10 @@ cmd_menu() {
         picked=$(dialog --title "$g" --no-tags "${kind[@]}" \
           "${hint}${na:+\n\nNo free list (not shown): ${na%, }}" 24 76 14 "${items[@]}" 3>&1 1>&2 2>&3) || continue
         [ "$picked" = OFF ] && picked=""
-        # Replace this group's keys with the picked ones.
-        sel="$keys"
+        # Replace this group's keys with the picked ones; unsaved = differs from what's saved.
         for ((i = 0; i < ${#items[@]}; i += 3)); do keys="$(grep -vxF "${items[$i]}" <<< "$keys")"; done
         keys="$(printf '%s\n%s\n' "$keys" "$picked" | grep -v '^$' | sort -u)"
-        [ "$keys" = "$(grep -v '^$' <<< "$sel" | sort -u)" ] || dirty=1 ;;
+        if [ "$keys" = "$saved" ]; then dirty=0; else dirty=1; fi ;;
     esac
   done
 }
