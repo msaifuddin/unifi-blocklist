@@ -198,7 +198,7 @@ Result      : blocked by the list entries above
 **How you find out.** Each time the lists are updated, the script also asks GitHub for the newest release of this project. That happens 5 minutes after the gateway starts, every 12 hours after that, and whenever you run an update yourself (menu **Apply**, `blocklist.sh update`). A new release is therefore noticed within about half a day. If it's newer than what's installed, `status` and the menu show:
 
 ```
-Version     : 1.1.1 (update available: 1.1.2, run: blocklist.sh upgrade)
+Version     : 1.1.2 (update available: 1.2.2, run: blocklist.sh upgrade)
 ```
 
 The same line is written to the log (`grep unifi-blocklist /var/log/messages`). Nothing is installed automatically.
@@ -214,7 +214,7 @@ It installs the newest release and keeps your settings, categories and custom do
 **Install a specific version.** To install an older release (for example if a new one causes problems), or the development version:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/msaifuddin/unifi-blocklist/main/install.sh | TAG=v1.1.1 bash
+curl -fsSL https://raw.githubusercontent.com/msaifuddin/unifi-blocklist/main/install.sh | TAG=v1.1.2 bash
 curl -fsSL https://raw.githubusercontent.com/msaifuddin/unifi-blocklist/main/install.sh | BRANCH=main bash
 ```
 
